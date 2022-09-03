@@ -1,0 +1,120 @@
+from numpy import true_divide
+from bot.acts.act_base import ActBase
+from bot.acts.interface_build_helper import InterfaceBuildHelper
+from bot.bot_ai_base import BotAIBase
+from bot.orders.order import Order
+from bot.orders.order_addon import OrderAddon
+from bot.orders.order_build import OrderBuild
+from bot.orders.order_build_woker import OrderBuildWorker
+from bot.orders.order_terran_unit import OrderTerranUnit
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.unit import Unit
+
+class ActOrder(ActBase):
+    def __init__(self):
+        super().__init__()
+        
+
+class ActOrderBuild(ActOrder):
+    def __init__(self, build_type: UnitTypeId, build_helper: InterfaceBuildHelper):
+        super().__init__()
+        self.build_type = build_type
+        self.order: Order = None
+        self.build_helper = build_helper
+
+    async def create_order(self):
+        location = await self.build_helper.get_build_location(self.build_type)
+        self.order = OrderBuildWorker(self.build_type, location)
+        self.order.reserve()
+        self.bot.producer.submit(self.order)
+
+    async def start(self):
+        await super().start()
+        await self.create_order()
+
+    async def execute(self) -> bool:
+        if self.order.is_done:
+            self.build_helper.on_build_complete(self.order.out_build)
+            return True
+    
+        return False
+
+    def debug_string(self) -> str:
+        if self.order:
+            return self.order.debug_string()
+        else:
+            return "$build-" + str(self.build_type).replace("UnitTypeId.", "")
+
+class ActOrderTerranUnit(ActOrder):
+    def __init__(self, unit_type: UnitTypeId, count: int):
+        super().__init__()
+
+        self.unit_type = unit_type
+        self.count = count
+        self.order: OrderTerranUnit = None
+        self.out_units: list[Unit] = []
+
+    async def start(self):
+        await super().start()
+        self.order = OrderTerranUnit(self.unit_type, self.count)
+        self.bot.producer.submit(self.order)     
+
+    async def execute(self) -> bool:
+        self.out_units = self.order.out_units
+        if self.order.is_done:
+            return True
+        else:
+            return False
+
+    def debug_string(self) -> str:
+        if self.order:
+            return self.order.debug_string()
+        else:
+            return "$Unit-" + str(self.unit_type).replace("UnitTypeId.", "")             
+        
+class ActOrderBuildGas(ActOrder):
+    def __init__(self, build_helper: InterfaceBuildHelper):
+        super().__init__()
+        self.build_helper = build_helper
+        self.order = None
+
+    async def execute(self) -> bool:
+        if self.order is None:
+            #todo 其他种族
+            self.order = OrderBuildWorker(UnitTypeId.REFINERY, self.build_helper.get_vespene_geyser())
+            self.bot.producer.submit(self.order)
+        else:
+            if self.order.is_done:
+                return True
+            else:
+                return False
+
+    def debug_string(self) -> str:
+        if self.order:
+            return self.order.debug_string()
+        else:                
+            return "$Gas"
+
+class ActOrderBuildAddon(ActOrder):
+    def __init__(self, unit_type: UnitTypeId):
+        super().__init__()
+        self.order = None
+        self.unit_type = unit_type
+
+    async def start(self):
+        await super().start()
+        self.order = OrderAddon(self.unit_type)
+        self.order.reserve()
+        self.bot.producer.submit(self.order)
+
+    async def execute(self) -> bool:
+        if self.order.is_done:
+            return True
+        else:
+            return False            
+
+    def debug_string(self) -> str:
+        if self.order:
+            return self.order.debug_string()
+        else:
+            return "$Addon-" + str(self.unit_type).replace("UnitTypeId.", "")
