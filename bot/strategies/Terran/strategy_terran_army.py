@@ -12,9 +12,12 @@ from sc2.unit import Unit
 
 
 class StrategyTerranArmy(Strategy, InterfaceBuildHelper):
-    def __init__(self, bot: BotAIBase) -> None:
-        super().__init__(bot)
+    def __init__(self) -> None:
+        super().__init__()
 
+    def post_init(self, bot: BotAIBase):
+        super().post_init(bot)
+        
         self.act_order_marine = ActOrderTerranUnit(UnitTypeId.MARINE, 999)
         self.act_order_tank = ActOrderTerranUnit(UnitTypeId.SIEGETANK, 999)
 

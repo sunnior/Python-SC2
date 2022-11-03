@@ -11,9 +11,12 @@ from sc2.position import Point2
 from sc2.unit import Unit
 
 class StrategyTerranMining(Strategy, InterfaceBuildHelper):
-    def __init__(self, bot : BotAIBase) -> None:
-        super().__init__(bot)
+    def __init__(self) -> None:
+        super().__init__()
         self.squads_mining: list[SquadMining] = []
+        
+    def post_init(self, bot: BotAIBase):
+        super().post_init(bot)
         
         act_build_orders = [
             ActSequence(ActCheckSupplyUsed(15), ActOrderBuildGas(self)),  

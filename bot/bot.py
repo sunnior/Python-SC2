@@ -30,7 +30,8 @@ class CompetitiveBot(BotAIBase):
 
         await self.client.debug_show_map()
         #self.strategy = StrategyZergRoot(self)
-        self.strategy = StrategyTerranRoot(self)
+        self.strategy = StrategyTerranRoot()
+        self.strategy.post_init(self)
         
         self.strategy.start()
 

@@ -1,5 +1,6 @@
 from distutils.command.build import build
 from MapAnalyzer.MapData import MapData
+from bot.city.city_terran_main import CityTerranMain
 from bot.squads.squad import Squad
 from sc2.bot_ai import BotAI
 from bot.producer_manager import ProducerManager
@@ -17,6 +18,7 @@ class BotAIBase(BotAI):
         self.squads: list[Squad] = []
         self.race: Race = None
         self.locked_build_types: list[UnitTypeId] = []
+        self.cities: list[City] = []
 
     def terrain_to_z_height(self, h):
         """Gets correct z from versions 4.9.0+"""
@@ -24,6 +26,9 @@ class BotAIBase(BotAI):
 
     async def on_start(self):
         self.map_data : MapData = MapData(self)
+        region = self.map_data.where_all(self.start_location)[0]
+        if self.race == Race.Terran:
+            self.cities.append(CityTerranMain(region))
 
     async def on_step(self, iteration: int):
         await self.producer.step()

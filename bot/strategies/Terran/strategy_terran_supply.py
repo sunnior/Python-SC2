@@ -23,8 +23,12 @@ class ActCheckTerranSupplyAuto(ActBase):
         return "?TerranSupplyAuto"
         
 class StrategyTerranSupply(Strategy, InterfaceBuildHelper):
-    def __init__(self, bot : BotAIBase) -> None:
-        super().__init__(bot)
+    def __init__(self) -> None:
+        super().__init__()
+
+    def post_init(self, bot: BotAIBase):
+        super().post_init(bot)
+        
         self.order = None
         acts: list[ActBase] = [
             ActSequence(ActCheckSupplyUsed(14), ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self)),

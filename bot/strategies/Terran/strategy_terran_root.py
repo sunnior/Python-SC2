@@ -5,11 +5,15 @@ from bot.strategies.Terran.strategy_terran_mining import StrategyTerranMining
 from bot.strategies.Terran.strategy_terran_supply import StrategyTerranSupply
 
 class StrategyTerranRoot(Strategy):
-    def __init__(self, bot : BotAIBase) -> None:
-        super().__init__(bot)
-        self.add_sub_strategy(StrategyTerranMining(bot))
-        self.add_sub_strategy(StrategyTerranSupply(bot))
-        self.add_sub_strategy(StrategyTerranArmy(bot))
+    def __init__(self) -> None:
+        super().__init__()
+
+    def post_init(self, bot: BotAIBase):
+        super().post_init(bot)
+
+        self.add_sub_strategy(StrategyTerranMining())
+        self.add_sub_strategy(StrategyTerranSupply())
+        self.add_sub_strategy(StrategyTerranArmy())
 
     def start(self):
         super().start()

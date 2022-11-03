@@ -6,13 +6,15 @@ from sc2.position import Point2
 from sc2.unit import Unit
 
 class Strategy():
-    def __init__(self, bot : BotAIBase) -> None:
+    def __init__(self) -> None:
         self.substrategies : list[Strategy] = []
-        self.bot = bot
         self.squads : list[Squad] = []
         self.acts_pending: list[ActBase] = []
         self.acts_ending: list[ActBase] = []
         self.acts: list[ActBase] = []
+
+    def post_init(self, bot : BotAIBase):
+        self.bot = bot
 
     def start(self):
         for strategy in self.substrategies:
@@ -53,6 +55,7 @@ class Strategy():
             await strategy._step()
 
     def add_sub_strategy(self, strategy):
+        strategy.post_init(self.bot)
         self.substrategies.append(strategy)
 
     def submit_squad(self, squad):
