@@ -46,7 +46,7 @@ class StrategyTerranSupply(Strategy, InterfaceBuildHelper):
             return await self.get_build_location_early(unit_type)
 
     async def get_build_location_early(self, unit_type: UnitTypeId) -> Optional[Point2]:
-        base_location = self.bot.start_location
+        """        base_location = self.bot.start_location
         region = self.bot.map_data.where_all(base_location)[0]
         choke_area = region.region_chokes[0]
         buildables = choke_area.buildables
@@ -54,7 +54,9 @@ class StrategyTerranSupply(Strategy, InterfaceBuildHelper):
             position = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, point)
             if position is not None:
                 return position
-        return None
+        return None """
+        main_city = self.bot.cities[0]
+        return await main_city.get_and_lock_placement_near_choke(unit_type)
 
     async def get_build_location_later(self, unit_type: UnitTypeId) -> Optional[Point2]:
         base_location = self.bot.start_location

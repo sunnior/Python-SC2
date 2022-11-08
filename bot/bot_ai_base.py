@@ -1,6 +1,6 @@
 from distutils.command.build import build
 from MapAnalyzer.MapData import MapData
-from bot.city.city_terran_main import CityTerranMain
+from bot.orders.city.city import City
 from bot.squads.squad import Squad
 from sc2.bot_ai import BotAI
 from bot.producer_manager import ProducerManager
@@ -28,7 +28,7 @@ class BotAIBase(BotAI):
         self.map_data : MapData = MapData(self)
         region = self.map_data.where_all(self.start_location)[0]
         if self.race == Race.Terran:
-            self.cities.append(CityTerranMain(region))
+            self.cities.append(City(self, self.map_data, region))
 
     async def on_step(self, iteration: int):
         await self.producer.step()
@@ -42,6 +42,8 @@ class BotAIBase(BotAI):
         debug_str = self.strategy.debug("")
         self.client.debug_text_screen(debug_str, (0, 0), (0, 255, 0), 12)
 
+        for city in self.cities:
+            city.debug()
 
         base_location = self.townhalls[0].position
         region = self.map_data.where_all(base_location)[0]
@@ -57,6 +59,9 @@ class BotAIBase(BotAI):
             show_points.append(in_point)
             self.client.debug_box2_out(in_point, color=in_color, half_vertex_length=0.25)
         """
+
+    def get_main_city(self) -> City:
+        return self.cities[0]
 
     async def on_unit_created(self, unit: Unit):
         self.producer.on_unit_created(unit)

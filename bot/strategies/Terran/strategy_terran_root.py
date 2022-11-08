@@ -13,7 +13,7 @@ class StrategyTerranRoot(Strategy):
 
         self.add_sub_strategy(StrategyTerranMining())
         self.add_sub_strategy(StrategyTerranSupply())
-        self.add_sub_strategy(StrategyTerranArmy())
+        #self.add_sub_strategy(StrategyTerranArmy())
 
     def start(self):
         super().start()
