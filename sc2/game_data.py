@@ -167,6 +167,10 @@ class UnitTypeData:
         """ See unit.py footprint_radius """
         if self.creation_ability is None:
             return None
+        #todo 自己修复一下
+        if self.id == UnitTypeId.BARRACKSREACTOR:
+            return 1
+
         return self.creation_ability._proto.footprint_radius
 
     @property

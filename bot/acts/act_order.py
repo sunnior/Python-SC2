@@ -1,6 +1,6 @@
 from numpy import true_divide
 from bot.acts.act_base import ActBase
-from bot.acts.interface_build_helper import InterfaceBuildHelper
+from bot.orders.interface_build_helper import InterfaceBuildHelper
 from bot.bot_ai_base import BotAIBase
 from bot.orders.order import Order
 from bot.orders.order_addon import OrderAddon
@@ -23,8 +23,7 @@ class ActOrderBuild(ActOrder):
         self.build_helper = build_helper
 
     async def create_order(self):
-        location = await self.build_helper.get_build_location(self.build_type)
-        self.order = OrderBuildWorker(self.build_type, location)
+        self.order = OrderBuildWorker(self.build_type, self.build_helper)
         self.order.reserve()
         self.bot.producer.submit(self.order)
 
@@ -34,7 +33,6 @@ class ActOrderBuild(ActOrder):
 
     async def execute(self) -> bool:
         if self.order.is_done:
-            self.build_helper.on_build_complete(self.order.out_build)
             return True
     
         return False
@@ -72,34 +70,12 @@ class ActOrderTerranUnit(ActOrder):
         else:
             return "$Unit-" + str(self.unit_type).replace("UnitTypeId.", "")             
         
-class ActOrderBuildGas(ActOrder):
-    def __init__(self, build_helper: InterfaceBuildHelper):
-        super().__init__()
-        self.build_helper = build_helper
-        self.order = None
-
-    async def execute(self) -> bool:
-        if self.order is None:
-            #todo 其他种族
-            self.order = OrderBuildWorker(UnitTypeId.REFINERY, self.build_helper.get_vespene_geyser())
-            self.bot.producer.submit(self.order)
-        else:
-            if self.order.is_done:
-                return True
-            else:
-                return False
-
-    def debug_string(self) -> str:
-        if self.order:
-            return self.order.debug_string()
-        else:                
-            return "$Gas"
-
 class ActOrderBuildAddon(ActOrder):
-    def __init__(self, unit_type: UnitTypeId):
+    def __init__(self, unit_type: UnitTypeId, build_helper: InterfaceBuildHelper):
         super().__init__()
         self.order = None
         self.unit_type = unit_type
+        self.build_helper = build_helper
 
     async def start(self):
         await super().start()
@@ -109,6 +85,7 @@ class ActOrderBuildAddon(ActOrder):
 
     async def execute(self) -> bool:
         if self.order.is_done:
+            self.build_helper.on_build_complete(self.order.out_build)
             return True
         else:
             return False            

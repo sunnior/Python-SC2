@@ -1,8 +1,8 @@
 from typing import Optional
 from bot.acts.act_check_unit import ActCheckBuildReady, ActCheckSupplyUsed
-from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderBuildGas, ActOrderTerranUnit
+from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderTerranUnit
 from bot.acts.act_flow_control import ActSequence
-from bot.acts.interface_build_helper import InterfaceBuildHelper
+from bot.orders.interface_build_helper import InterfaceBuildHelper
 from bot.bot_ai_base import BotAIBase
 from bot.strategies.strategy import Strategy
 from sc2.ids.unit_typeid import UnitTypeId
@@ -10,18 +10,53 @@ from bot.squads.squad_mining import SquadMining
 from sc2.position import Point2
 from sc2.unit import Unit
 
+class BuildHelperTerranMining(InterfaceBuildHelper):
+    def __init__(self, bot: BotAIBase, squads_ming: list[SquadMining], owner):
+        self.bot = bot
+        self.squads_mining = squads_ming
+        self.owner = owner
+
+    async def get_build_position(self, unit_type: UnitTypeId) -> Optional[Point2]:
+        if unit_type == UnitTypeId.COMMANDCENTER:
+            return await self.bot.get_next_expansion()
+
+        return None
+
+    async def get_vespene_geyser(self) -> Optional[int]:
+        for squad in self.squads_mining:
+            vespene_tag = squad.get_free_vespene()
+            if vespene_tag is not None:
+                return vespene_tag
+        return None
+
+    def get_worker(self) -> Optional[Unit]:
+        for squad in self.squads_mining:
+            if isinstance(squad, SquadMining):
+                worker_tag = squad.remove_worker()
+                break
+
+        if worker_tag:
+            return self.bot.workers.find_by_tag(worker_tag)
+
+        return None
+
+    def on_building_construction_complete(self, unit: Unit):
+        if unit.type_id == UnitTypeId.COMMANDCENTER:
+            self.owner.create_squad_mining(unit)
+    
 class StrategyTerranMining(Strategy, InterfaceBuildHelper):
     def __init__(self) -> None:
         super().__init__()
-        self.squads_mining: list[SquadMining] = []
         
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
-        
+        self.squads_mining: list[SquadMining] = []
+        self.build_helper = BuildHelperTerranMining(self.bot, self.squads_mining, self)
+
         act_build_orders = [
-            ActSequence(ActCheckSupplyUsed(15), ActOrderBuildGas(self)),  
-            ActSequence(ActCheckSupplyUsed(18), ActCheckBuildReady(UnitTypeId.BARRACKS), ActOrderBuildAddon(UnitTypeId.ORBITALCOMMAND)), 
-            ActSequence(ActCheckSupplyUsed(20), ActOrderBuild(UnitTypeId.COMMANDCENTER, self)),
+            ActSequence(ActCheckSupplyUsed(15), ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)),  
+            ActSequence(ActCheckSupplyUsed(18), ActCheckBuildReady(UnitTypeId.BARRACKS), ActOrderBuildAddon(UnitTypeId.ORBITALCOMMAND, self.build_helper)), 
+            ActSequence(ActCheckSupplyUsed(20), ActOrderBuild(UnitTypeId.COMMANDCENTER, self.build_helper)),
         ]
         self.add_acts(act_build_orders)
 
@@ -67,24 +102,6 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
     async def step(self):
         self.step_new_worker()
         self.step_balance_worker()
-
-    async def get_build_location(self, unit_type: UnitTypeId) -> Optional[Point2]:
-        if unit_type == UnitTypeId.COMMANDCENTER:
-            return await self.bot.get_next_expansion()
-
-        return None
-
-    def get_vespene_geyser(self) -> Optional[int]:
-        for squad in self.squads_mining:
-            vespene_tag = squad.get_free_vespene()
-            if vespene_tag is not None:
-                return vespene_tag
-        return None
-
-    def on_building_construction_complete(self, unit: Unit):
-        if unit.type_id == UnitTypeId.COMMANDCENTER:
-            self.create_squad_mining(unit)
-
 
     def create_squad_mining(self, townhall: Unit):
         squad_mining = SquadMining(self.bot, townhall)

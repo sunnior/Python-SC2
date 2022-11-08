@@ -2,8 +2,10 @@ import numpy
 from MapAnalyzer.MapData import MapData
 from MapAnalyzer.Region import Region
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
+from sc2.unit import Unit
 
 
 class City():
@@ -29,7 +31,7 @@ class City():
         self.grid_build = numpy.zeros((self.region_width, self.region_height)).astype(int)
         self.grid_distance_to_choke = numpy.empty(shape=(self.region_width, self.region_height)).astype(int)
         self.grid_distance_to_choke.fill(9999)
-        self.grid_reserve = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
+        self.grid_lock = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
 
         self._cal_grid_base()
         self._cal_grid_resources()
@@ -152,74 +154,84 @@ class City():
         if not self.is_point_in_region_box(point):
             return False
         
-        if self.grid_build[point[0]][point[1]] != City.grid_index_empty or self.grid_reserve[point[0]][point[1]] != 0:
+        if self.grid_build[point[0]][point[1]] != City.grid_index_empty or self.grid_lock[point[0]][point[1]] != 0:
             return False
 
         return True
-        
-    async def get_and_lock_placement_near_choke(self, unit_type: UnitTypeId, has_add_on = False):
 
-        creation_ability = self.bot.game_data.units[unit_type.value].creation_ability.id
+    def lock_positions(self, point_left_bottom: Point2, size: Point2):
+        position_origin = point_left_bottom.offset(-self.region_origin)
+        for x in range(position_origin[0], position_origin[0] + size[0]):
+            for y in range(position_origin[1], position_origin[1] + size[1]):
+                self.grid_lock[x][y] = 1
+
+    def unlock_positions(self, point_left_bottom: Point2, size: Point2):
+        position_origin = point_left_bottom.offset(-self.region_origin)
+        for x in range(position_origin[0], position_origin[0] + size[0]):
+            for y in range(position_origin[1], position_origin[1] + size[1]):
+                self.grid_lock[x][y] = 0
+
+    async def get_placement_near_choke(self, unit_type: UnitTypeId, has_addon = False):
+
+        unit_data = self.bot.game_data.units[unit_type.value]
+        creation_ability = unit_data.creation_ability.id
+        radius = unit_data.footprint_radius
 
         grid_scaned = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
 
-        building_size: Point2 = None
-        #todo 后面看看size怎么查询
-        if unit_type == UnitTypeId.SUPPLYDEPOT:
-            building_size = Point2((2, 2))
+        building_size: Point2 = Point2((int(radius) * 2,  int(radius) * 2))
+        building_size_half: Point2 = Point2((int(radius),  int(radius)))
         
-        building_size_half = Point2((building_size[0]/2, building_size[1]/2))
         scan_points = self.choke_points.copy()
         next_scan_points: list[Point2] = []
         for point in scan_points:
             grid_scaned[point[0]][point[1]] = 1
 
+        def check_grid(point, building_size):
+            for x in range(point[0], point[0] + building_size[0]):
+                for y in range(point[1], point[1] + building_size[1]):
+                    if not self.is_point_buildable(Point2((x, y))):
+                        return False
+
+            return True
+
         while len(scan_points) > 0:
             distance = self.grid_distance_to_choke[scan_points[0][0]][scan_points[0][1]]
-            print(distance)
             possible_points = []
+
             for point in scan_points:
-                def check_grid(point, building_size, grid_build):
-                    for x in range(point[0], point[0] + building_size[0]):
-                        for y in range(point[1], point[1] + building_size[1]):
-                            if not self.is_point_buildable(Point2((x, y))):
-                                return False
-                    
-                    return True
-                if check_grid(point, building_size, self.grid_build):
+                
+                can_build = check_grid(point, building_size)
+                if can_build and has_addon:
+                    add_position = Point2((point[0] + building_size[0], point[1]))
+                    can_build = check_grid(add_position, Point2((2, 2)))
+                
+                if can_build:
                     possible_points.append(point.offset(self.region_origin).offset(building_size_half).rounded)
 
                 # world_point = point.offset(self.region_origin)                
-
-
                 new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
                 new_points = [ new_point for new_point in new_points if self.is_point_in_region_box(new_point) and 
                                                                         self.grid_build[new_point[0]][new_point[1]] == City.grid_index_empty and 
                                                                         grid_scaned[new_point[0]][new_point[1]] == 0]
                 for new_point in new_points:
                     grid_scaned[new_point[0]][new_point[1]] = 1                                            
-                next_scan_points = next_scan_points + new_points                 
+                next_scan_points = next_scan_points + new_points    
 
             if len(possible_points) > 0:
                 res = await self.bot.client._query_building_placement_fast(creation_ability, possible_points)
                 possible = [p for r, p in zip(res, possible_points) if r]
+
+                if has_addon:
+                    # Filter remaining positions if addon can be placed
+                    res = await self.bot.client._query_building_placement_fast(
+                        AbilityId.TERRANBUILD_SUPPLYDEPOT,
+                    [p.offset((2.5, -0.5)) for p in possible])
+                    possible = [p for r, p in zip(res, possible) if r]
+
                 if possible:
                     position = possible[0]
-                    position_origin = position.offset(-building_size_half).rounded.offset(-self.region_origin)
-                    for x in range(position_origin[0], position_origin[0] + building_size[0]):
-                        for y in range(position_origin[1], position_origin[1] + building_size[1]):
-                            self.grid_reserve[x][y] = 1
                     return position
-
-            """
-            if addon_place:
-                # Filter remaining positions if addon can be placed
-                res = await self.client._query_building_placement_fast(
-                    AbilityId.TERRANBUILD_SUPPLYDEPOT,
-                    [p.offset((2.5, -0.5)) for p in possible],
-                )
-                possible = [p for r, p in zip(res, possible) if r]
-            """
 
             scan_points = next_scan_points.copy()
             next_scan_points.clear()
@@ -227,6 +239,17 @@ class City():
 
         return None
 
+    def on_building_complete(self, unit: Unit):
+        position = unit.position
+        radius = unit.footprint_radius
+        building_size_half = Point2((radius, radius))
+        building_size = Point2((radius * 2, radius * 2)).rounded
+        position_local = position.offset(-self.region_origin).offset(-building_size_half).rounded
+        for x in range(position_local[0], position_local[0] + building_size[0]):
+            for y in range(position_local[1], position_local[1] + building_size[1]):
+                if self.is_point_in_region_box(Point2((x, y))):
+                    self.grid_build[x][y] = City.grid_index_building
+    
     def debug(self):
         colors = [
             (0, 0, 0), 
@@ -257,7 +280,7 @@ class City():
                     in_color = colors[grid_value]
                     self.bot.client.debug_box2_out(in_point, half_vertex_length=0.45, color=in_color)
 
-                if self.grid_reserve[x][y]:
+                if self.grid_lock[x][y]:
                     in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height))
                     in_color = colors[grid_value]
                     self.bot.client.debug_box2_out(in_point, half_vertex_length=0.35, color=in_color)

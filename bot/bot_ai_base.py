@@ -1,6 +1,6 @@
 from distutils.command.build import build
 from MapAnalyzer.MapData import MapData
-from bot.orders.city.city import City
+from bot.city.city import City
 from bot.squads.squad import Squad
 from sc2.bot_ai import BotAI
 from bot.producer_manager import ProducerManager
@@ -69,6 +69,9 @@ class BotAIBase(BotAI):
 
     async def on_building_construction_complete(self, unit: Unit):
         self.producer.on_building_construction_complete(unit)
+        for city in self.cities:
+            city.on_building_complete(unit)
+
         self.strategy._on_building_construction_complete(unit)
 
     async def on_unit_type_changed(self, unit: Unit, previous_type: UnitTypeId):
