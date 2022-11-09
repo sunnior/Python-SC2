@@ -18,4 +18,8 @@ class InterfaceBuildHelper():
         assert(False)
         
     def on_build_complete(self, unit: Unit, worker_tag: int):
-        pass
+        if worker_tag:
+            assert(False)
+
+    def on_addon_complete(self, unit: Unit):
+        assert(False)

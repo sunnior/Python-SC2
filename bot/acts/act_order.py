@@ -79,13 +79,12 @@ class ActOrderBuildAddon(ActOrder):
 
     async def start(self):
         await super().start()
-        self.order = OrderAddon(self.unit_type)
+        self.order = OrderAddon(self.unit_type, self.build_helper)
         self.order.reserve()
         self.bot.producer.submit(self.order)
 
     async def execute(self) -> bool:
         if self.order.is_done:
-            self.build_helper.on_build_complete(self.order.out_build)
             return True
         else:
             return False            

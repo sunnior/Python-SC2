@@ -5,6 +5,7 @@ from bot.acts.act_flow_control import ActSequence
 from bot.orders.interface_build_helper import InterfaceBuildHelper
 from bot.bot_ai_base import BotAIBase
 from bot.city.city import City
+from bot.squads.squad_mining import SquadMining
 from bot.strategies.strategy import Strategy
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
@@ -35,7 +36,18 @@ class BuildHelperTerranArmy(InterfaceBuildHelper):
 
         return position
         
-    def on_build_complete(self, unit: Unit):
+    def get_worker(self) -> Optional[Unit]:
+        for squad in self.bot.squads:
+            if isinstance(squad, SquadMining):
+                worker_tag = squad.remove_worker()
+                break
+
+        if worker_tag:
+            return self.bot.workers.find_by_tag(worker_tag)
+
+        return None
+
+    def on_build_complete(self, unit: Unit, worker_tag: int):
         unit_data = self.bot.game_data.units[unit.type_id.value]
         radius = unit_data.footprint_radius
         position_origin = unit.position.offset(Point2((-radius, -radius))).rounded    
@@ -44,6 +56,18 @@ class BuildHelperTerranArmy(InterfaceBuildHelper):
         main_city.unlock_positions(position_origin, Point2((int(radius * 2), int(radius * 2))))
         self.owner.on_build_complete(unit)
         
+        for squad in self.bot.squads:
+            if isinstance(squad, SquadMining):
+                squad.add_worker(self.bot.workers.find_by_tag(worker_tag))
+                break
+
+    def on_addon_complete(self, unit: Unit):
+        unit_data = self.bot.game_data.units[unit.type_id.value]
+        radius = unit_data.footprint_radius
+        position_origin = unit.position.offset(Point2((-radius, -radius))).rounded    
+        self.reserve_positions.remove(position_origin)
+        main_city: City = self.bot.cities[0]
+        main_city.unlock_positions(position_origin, Point2((int(radius * 2), int(radius * 2))))    
 
 class StrategyTerranArmy(Strategy):
     def __init__(self) -> None:

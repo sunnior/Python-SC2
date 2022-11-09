@@ -3,13 +3,15 @@ from bot.orders.order_build import OrderBuild
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
+from bot.orders.interface_build_helper import InterfaceBuildHelper
 
 class OrderAddon(OrderBuild):
  
-    def __init__(self, unit_type: UnitTypeId):
+    def __init__(self, unit_type: UnitTypeId, build_helper: InterfaceBuildHelper):
         super().__init__()
 
         self.target_type = unit_type
+        self.builder_helper = build_helper
 
         self.from_type = None
         self.out_build = None
@@ -27,6 +29,7 @@ class OrderAddon(OrderBuild):
     def on_submit(self, bot: BotAI):
         super().on_submit(bot)
 
+        self.builder_tag = None
         unit_data = self.bot.game_data.units[self.target_type.value]
         cost = self.bot.game_data.calculate_ability_cost(unit_data.creation_ability)
 
@@ -54,12 +57,14 @@ class OrderAddon(OrderBuild):
         if unit.type_id == self.target_type:
             self.is_done = True
             self.out_build = unit
+            self.builder_helper.on_addon_complete(unit)
             return True
 
     def on_building_construction_complete(self, unit: Unit):
         if unit.type_id == self.target_type:
             self.is_done = True
             self.out_build = unit
+            self.builder_helper.on_addon_complete(unit)
             return True
 
     def post_step(self):

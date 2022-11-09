@@ -40,9 +40,17 @@ class BuildHelperTerranMining(InterfaceBuildHelper):
 
         return None
 
-    def on_building_construction_complete(self, unit: Unit):
+    def on_build_complete(self, unit: Unit, worker_tag: int):
         if unit.type_id == UnitTypeId.COMMANDCENTER:
             self.owner.create_squad_mining(unit)
+
+        for squad in self.bot.squads:
+            if isinstance(squad, SquadMining):
+                squad.add_worker(self.bot.workers.find_by_tag(worker_tag))
+                break
+
+    def on_addon_complete(self, unit: Unit):
+        pass
     
 class StrategyTerranMining(Strategy, InterfaceBuildHelper):
     def __init__(self) -> None:

@@ -79,12 +79,12 @@ class City():
 
         resources_positions: list[Point2] =[]
         for mineral_field in resource_list.mineral_field:
-            mineral_pos = mineral_field.position.offset(Point2((-1, 0))).rounded
+            mineral_pos = mineral_field.position
             local_pos = mineral_pos.offset(-self.region_origin)
             resources_positions.append(local_pos)
 
         for vespene_geyser in resource_list.vespene_geyser:
-            vespene_geyser_center = vespene_geyser.position.rounded
+            vespene_geyser_center = vespene_geyser.position
             local_pos = vespene_geyser_center.offset(-self.region_origin)
             resources_positions.append(local_pos)
 
@@ -95,8 +95,8 @@ class City():
                 test_points.append(position.rounded)
 
             for point in test_points:
-                for x in range(point[0] - 1, point[0] + 1):
-                    for y in range(point[1] - 1, point[1] + 1):
+                for x in range(point[0] - 1, point[0] + 2):
+                    for y in range(point[1] - 1, point[1] + 2):
 
                         if self.grid_build[x][y] != 2:
                             self.grid_build[x][y] = self.grid_index_mining_path
@@ -179,8 +179,8 @@ class City():
 
         grid_scaned = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
 
-        building_size: Point2 = Point2((int(radius) * 2,  int(radius) * 2))
-        building_size_half: Point2 = Point2((int(radius),  int(radius)))
+        building_size: Point2 = Point2((int(radius * 2),  int(radius * 2)))
+        building_size_half: Point2 = Point2((radius,  radius))
         
         scan_points = self.choke_points.copy()
         next_scan_points: list[Point2] = []
@@ -207,12 +207,11 @@ class City():
                     can_build = check_grid(add_position, Point2((2, 2)))
                 
                 if can_build:
-                    possible_points.append(point.offset(self.region_origin).offset(building_size_half).rounded)
+                    possible_points.append(point.offset(self.region_origin).offset(building_size_half))
 
                 # world_point = point.offset(self.region_origin)                
                 new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
                 new_points = [ new_point for new_point in new_points if self.is_point_in_region_box(new_point) and 
-                                                                        self.grid_build[new_point[0]][new_point[1]] == City.grid_index_empty and 
                                                                         grid_scaned[new_point[0]][new_point[1]] == 0]
                 for new_point in new_points:
                     grid_scaned[new_point[0]][new_point[1]] = 1                                            
@@ -237,6 +236,7 @@ class City():
             next_scan_points.clear()
             distance = distance + 1
 
+        assert(False)
         return None
 
     def on_building_complete(self, unit: Unit):
@@ -269,10 +269,13 @@ class City():
                 height = max(self.terrain_to_z_height(terrain_height[world_point]), 
                             self.terrain_to_z_height(terrain_height[world_point.offset(Point2((1, 0)))]), 
                             self.terrain_to_z_height(terrain_height[world_point.offset(Point2((0, 1)))]))
+                """
                 distance = self.grid_distance_to_choke[x][y]
                 if distance < 1000:
                     in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height + 0.45))
                     self.bot.client.debug_text_world(str(distance), in_point, (255, 255, 255))
+                """
+
 
                 grid_value = self.grid_build[x][y]
                 if grid_value != 0:

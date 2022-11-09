@@ -9,6 +9,7 @@ from bot.city.city import City
 from bot.squads.squad_mining import SquadMining
 from bot.strategies.strategy import Strategy
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -31,10 +32,7 @@ class BuildHelperTerranSupply(InterfaceBuildHelper):
         self.reserve_positions: list[Point2] = []
 
     async def get_build_position(self, unit_type: UnitTypeId) -> Optional[Point2]:
-        if self.bot.supply_cap > 50:
-            return await self.get_build_location_later(unit_type)
-        else:
-            return await self.get_build_location_early(unit_type)
+        return await self.get_build_location_early(unit_type)
 
     async def get_build_location_early(self, unit_type: UnitTypeId) -> Optional[Point2]:
         main_city: City = self.bot.cities[0]
@@ -57,16 +55,8 @@ class BuildHelperTerranSupply(InterfaceBuildHelper):
                 squad.add_worker(self.bot.workers.find_by_tag(worker_tag))
                 break
 
-    async def get_build_location_later(self, unit_type: UnitTypeId) -> Optional[Point2]:
-        base_location = self.bot.start_location
-        region = self.bot.map_data.where_all(base_location)[0]
-        pre_location = region.region_chokes[0].center.towards(base_location, 6)
-        position = await self.bot.find_placement(unit_type, pre_location.rounded, addon_place=True)
-        if position is not None:
-            return position
+        unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
         
-        return None
-
     def get_worker(self) -> Optional[Unit]:
         for squad in self.bot.squads:
             if isinstance(squad, SquadMining):
