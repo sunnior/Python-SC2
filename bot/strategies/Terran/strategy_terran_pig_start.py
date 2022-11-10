@@ -2,7 +2,7 @@ from typing import Optional
 from bot.acts.act_base import ActBase
 from bot.acts.act_check_unit import ActCheckBuildReady, ActCheckSupplyUsed
 from bot.acts.act_flow_control import ActAnd, ActLoop, ActSequence
-from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderUpgrade
+from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderTerranUnit, ActOrderUpgrade
 from bot.bot_ai_base import BotAIBase
 from bot.city.city import City
 from bot.orders.interface_build_helper import InterfaceBuildHelper
@@ -15,7 +15,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 
-class BuildHelperTerranPigDiamond(InterfaceBuildHelper):
+class BuildHelperTerranPigStart(InterfaceBuildHelper):
     def __init__(self, bot: BotAIBase, strategy_mining: StrategyTerranMining, strategy_army: StrategyTerranArmy):
         self.bot = bot
         self.reserve_positions: list[Point2] = []
@@ -25,10 +25,12 @@ class BuildHelperTerranPigDiamond(InterfaceBuildHelper):
 
     async def get_build_position(self, unit_type: UnitTypeId) -> Optional[Point2]:
         is_lock_position = True
+        is_lock_addon = False
         if unit_type == UnitTypeId.SUPPLYDEPOT:
             position = await self.get_supplydepot_position(unit_type)
         elif unit_type in [UnitTypeId.BARRACKS, UnitTypeId.FACTORY]:
             position = await self.get_army_building_position(unit_type)
+            is_lock_addon = True
         elif unit_type == UnitTypeId.COMMANDCENTER:
             position = await self.bot.get_next_expansion()
             is_lock_position = False
@@ -38,8 +40,10 @@ class BuildHelperTerranPigDiamond(InterfaceBuildHelper):
             unit_data = self.bot.game_data.units[unit_type.value]
             radius = unit_data.footprint_radius
             position_origin = position.offset(Point2((-radius, -radius))).rounded
-            main_city.lock_positions(position_origin, Point2((2, 2)))
+            main_city.lock_positions(position_origin, Point2((int(radius * 2), int(radius * 2))))
             self.reserve_positions.append(position_origin)
+            if is_lock_addon:
+                main_city.lock_positions(position_origin.offset(Point2((int(radius * 2), 0))), Point2((2, 2)))
 
         return position
 
@@ -62,7 +66,7 @@ class BuildHelperTerranPigDiamond(InterfaceBuildHelper):
         is_lock_position = True
         if unit.type_id == UnitTypeId.SUPPLYDEPOT:
             unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
-        elif Unit.type_id in [ UnitTypeId.BARRACKS, UnitTypeId.FACTORY ]:
+        elif unit.type_id in [ UnitTypeId.BARRACKS, UnitTypeId.FACTORY ]:
             if self.is_choke_open:
                 #todo 
                 self.is_choke_open = self.is_choke_open - 1
@@ -104,7 +108,7 @@ class ActCheckTerranSupplyAuto(ActBase):
     def debug_string(self) -> str:
         return "?TerranSupplyAuto"
         
-class StrategyTerranPigDiamond(Strategy):
+class StrategyTerranPigStart(Strategy):
     def __init__(self) -> None:
         super().__init__()
 
@@ -117,28 +121,66 @@ class StrategyTerranPigDiamond(Strategy):
         self.add_sub_strategy(self.strategy_mining)
         self.add_sub_strategy(self.strategy_army)
 
-        self.build_helper = BuildHelperTerranPigDiamond(self.bot, self.strategy_mining, self.strategy_army)
+        self.build_helper = BuildHelperTerranPigStart(self.bot, self.strategy_mining, self.strategy_army)
 
         self.setup_build_order()
 
     def setup_build_order(self):
         acts: list[ActBase] = [
-            ActSequence(ActCheckSupplyUsed(20), ActOrderBuild(UnitTypeId.COMMANDCENTER, self.build_helper)),                                       
-            ActSequence(ActCheckSupplyUsed(14), 
-                        ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper),
-                        ActCheckSupplyUsed(16), 
-                        ActAnd(ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper), ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)),
-                        ActCheckSupplyUsed(20), 
-                        ActAnd(ActOrderBuildAddon(UnitTypeId.ORBITALCOMMAND, self.build_helper), 
-                               ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper)),
-                        ActCheckSupplyUsed(23),
-                        ActAnd(ActOrderBuild(UnitTypeId.FACTORY, self.build_helper), 
-                               ActOrderBuild(UnitTypeId.REFINERY, self.build_helper),
-                               ActOrderBuildAddon(UnitTypeId.BARRACKSREACTOR, self.build_helper)),
-                        ActCheckSupplyUsed(28), ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper),
-                        ActLoop(ActSequence(ActCheckTerranSupplyAuto(), 
-                                            ActAnd(ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper), 
-                                                   ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper))))),
+            ActSequence(
+                ActCheckBuildReady(UnitTypeId.BARRACKS),
+                ActOrderTerranUnit(UnitTypeId.REAPER, 1),
+                ActOrderTerranUnit(UnitTypeId.MARINE, 999)
+            ),
+            ActSequence(
+                ActCheckSupplyUsed(14), 
+                ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper),
+                ActCheckSupplyUsed(20), 
+                ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper),
+            ),
+            ActSequence(
+                ActCheckSupplyUsed(16), 
+                ActAnd(
+                    ActSequence(
+                        ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper), 
+                        ActOrderBuildAddon(UnitTypeId.BARRACKSREACTOR, self.build_helper)
+                    ),
+                    ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)
+                ),
+            ),
+            ActSequence(
+                ActCheckSupplyUsed(19),
+                ActAnd(
+                    ActOrderBuildAddon(UnitTypeId.ORBITALCOMMAND, self.build_helper),
+                    ActOrderBuild(UnitTypeId.COMMANDCENTER, self.build_helper)
+                )
+            ),
+            ActSequence(
+                ActCheckSupplyUsed(20),
+                ActAnd(
+                    ActSequence(
+                        ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper),
+                        ActOrderBuildAddon(UnitTypeId.BARRACKSTECHLAB, self.build_helper)
+                    ),
+                    ActSequence(
+                        ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper),
+                        ActOrderBuildAddon(UnitTypeId.BARRACKSTECHLAB, self.build_helper)
+                    )
+                ),
+                ActAnd(
+                    ActOrderUpgrade(UpgradeId.STIMPACK),
+                    ActOrderUpgrade(UpgradeId.SHIELDWALL)
+                )                
+            ),
+            ActLoop(
+                ActSequence(
+                    ActCheckTerranSupplyAuto(), 
+                    ActAnd(
+                        ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper), 
+                        ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper)
+                    )
+                )
+            )
         ]
 
         self.add_acts(acts)

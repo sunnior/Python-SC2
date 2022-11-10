@@ -65,7 +65,7 @@ class OrderBuildWorker(OrderBuild):
         return False
 
     def on_building_construction_complete(self, unit: Unit):
-        if unit.type_id != self.build_type or self.worker_tag is None:
+        if self.is_done or unit.type_id != self.build_type or self.worker_tag is None:
             return False
 
         self.out_build = unit

@@ -1,7 +1,5 @@
 from typing import Optional
-from bot.acts.act_check_unit import ActCheckBuildReady, ActCheckSupplyUsed
-from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderTerranUnit
-from bot.acts.act_flow_control import ActSequence
+from bot.acts.act_order import ActOrderTerranUnit
 from bot.orders.interface_build_helper import InterfaceBuildHelper
 from bot.bot_ai_base import BotAIBase
 from bot.strategies.strategy import Strategy

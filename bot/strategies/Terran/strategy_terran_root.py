@@ -1,6 +1,6 @@
 from bot.bot_ai_base import BotAIBase
 from bot.strategies.strategy import Strategy
-from bot.strategies.Terran.strategy_terran_pig_diamond import StrategyTerranPigDiamond
+from bot.strategies.Terran.strategy_terran_pig_start import StrategyTerranPigStart
 
 class StrategyTerranRoot(Strategy):
     def __init__(self) -> None:
@@ -9,7 +9,7 @@ class StrategyTerranRoot(Strategy):
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
 
-        self.add_sub_strategy(StrategyTerranPigDiamond())
+        self.add_sub_strategy(StrategyTerranPigStart())
 
     def start(self):
         super().start()

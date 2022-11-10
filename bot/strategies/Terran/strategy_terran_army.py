@@ -1,15 +1,9 @@
 from typing import Optional
-from bot.acts.act_check_unit import ActCheckBuildReady, ActCheckSupplyUsed
-from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderTerranUnit, ActOrderUpgrade
-from bot.acts.act_flow_control import ActSequence
-from bot.orders.interface_build_helper import InterfaceBuildHelper
 from bot.bot_ai_base import BotAIBase
-from bot.city.city import City
 from bot.squads.squad_mining import SquadMining
 from bot.strategies.strategy import Strategy
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
-from sc2.ids.upgrade_id import UpgradeId
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 
@@ -20,7 +14,6 @@ class StrategyTerranArmy(Strategy):
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
 
-        #self.act_order_marine = ActOrderTerranUnit(UnitTypeId.MARINE, 999)
         #self.act_order_tank = ActOrderTerranUnit(UnitTypeId.SIEGETANK, 999)
 
         path = self.bot.map_data.pathfind(self.bot.start_location, self.bot.enemy_start_locations[0])

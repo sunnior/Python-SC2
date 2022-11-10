@@ -109,6 +109,7 @@ class ActOrderUpgrade(ActOrder):
     async def start(self):
         await super().start()
         self.order = OrderUpgrade(self.upgrade_id)
+        self.order.reserve()
         self.bot.producer.submit(self.order)
 
     async def execute(self) -> bool:

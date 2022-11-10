@@ -8,18 +8,12 @@ from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
+from sc2.dicts.unit_trained_from import UNIT_TRAINED_FROM
 
 class OrderTerranUnit(OrderUnit):
     def __init__(self, unit_type : UnitTypeId, count : int) -> None:
         super().__init__(unit_type, count)
-        self.builder_types = []
-        if unit_type == UnitTypeId.SCV:
-            self.builder_types = [UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND, UnitTypeId.PLANETARYFORTRESS]
-        elif unit_type == UnitTypeId.MARINE:
-            #todo techlab有可能用来生产其他的
-            self.builder_types = [UnitTypeId.BARRACKS]
-        elif unit_type == UnitTypeId.SIEGETANK:
-            self.builder_types = [UnitTypeId.FACTORY]
+        self.builder_types = list(UNIT_TRAINED_FROM[unit_type])
 
     def on_submit(self, bot: BotAI):
         super().on_submit(bot)
