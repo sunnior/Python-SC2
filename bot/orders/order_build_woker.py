@@ -35,26 +35,34 @@ class OrderBuildWorker(OrderBuild):
         return self.worker_tag
 
     async def produce(self):
-        worker = self.build_helper.get_worker()
-        if not worker:
-            return False
- 
+
         if self.build_type == UnitTypeId.REFINERY:
-            geyser = await self.build_helper.get_vespene_geyser()
-            if geyser:
-                worker.build_gas(self.bot.vespene_geyser.find_by_tag(geyser))
-            else:
+            geyser_tag = self.build_helper.get_vespene_geyser()
+            if not geyser_tag:
                 return False
+
+            geyser = self.bot.vespene_geyser.find_by_tag(geyser_tag)
+            worker = self.build_helper.get_worker(geyser.position)
+            if not worker:
+                return False
+
+            worker.build_gas(geyser)
+            self.worker_tag = worker.tag
+            return True
         else:
+            #todo 如果position失败了，就不要lock city
             position = await self.build_helper.get_build_position(self.build_type)
-            if await self.bot.can_place(self.build_type, position):
-                worker.build(self.build_type, position)
-            else:
+            if not position or not await self.bot.can_place(self.build_type, position):
+                return False
+            worker = self.build_helper.get_worker(position)
+            if not worker:
                 return False
 
-        self.worker_tag = worker.tag
+            worker.build(self.build_type, position)
+            self.worker_tag = worker.tag
+            return True
 
-        return True
+        return False
 
     def on_building_construction_complete(self, unit: Unit):
         if unit.type_id != self.build_type or self.worker_tag is None:

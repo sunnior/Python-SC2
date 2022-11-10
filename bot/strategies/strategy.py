@@ -112,11 +112,11 @@ class Strategy():
                 debug_info = debug_info + " " + squad.debug_string()
             debug_info = debug_info + "\n"
 
-        next_prefix = prefix + "    "
+        next_prefix = prefix + "  "
         for strategy in self.substrategies:
             debug_info = debug_info + next_prefix + "L " + strategy.debug(next_prefix + "  ")
 
         return debug_info
 
-    def debug_string() -> str:
+    def debug_string(self) -> str:
         return ""

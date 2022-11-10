@@ -11,15 +11,14 @@ class InterfaceBuildHelper():
     async def get_build_position(self, unit_type: UnitTypeId) -> Optional[Point2]:
         assert(False)
 
-    async def get_vespene_geyser(self) -> Optional[int]:
+    def get_vespene_geyser(self) -> Optional[int]:
         assert(False)
 
-    def get_worker(self) -> Optional[Unit]:
+    def get_worker(self, near: Point2) -> Optional[Unit]:
         assert(False)
         
     def on_build_complete(self, unit: Unit, worker_tag: int):
-        if worker_tag:
-            assert(False)
+        assert(False)
 
     def on_addon_complete(self, unit: Unit):
         assert(False)

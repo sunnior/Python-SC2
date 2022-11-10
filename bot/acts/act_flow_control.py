@@ -106,9 +106,11 @@ class ActSequence(ActComposite):
 
     def debug_string(self) -> str:
         debug_info = "Seq[["
-        for act in self.act_list:
-            debug_info = debug_info + act.debug_string() + " "
-        
+        for act in self.act_list[:4]:
+            debug_info = debug_info + " " + act.debug_string()
+        if len(self.act_list) > 4:
+            debug_info = debug_info + " ..."
+
         debug_info = debug_info + "]]"
         return debug_info
 
