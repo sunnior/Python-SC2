@@ -32,11 +32,12 @@ class BuildHelperTerranSupply(InterfaceBuildHelper):
         self.reserve_positions: list[Point2] = []
 
     async def get_build_position(self, unit_type: UnitTypeId) -> Optional[Point2]:
-        return await self.get_build_location_early(unit_type)
-
-    async def get_build_location_early(self, unit_type: UnitTypeId) -> Optional[Point2]:
         main_city: City = self.bot.cities[0]
-        position = await main_city.get_placement_near_choke(unit_type)
+        if self.bot.supply_used < 30:
+            position = await main_city.get_placement_near_choke(unit_type)
+        else:
+            position = await main_city.get_placement_far_choke(unit_type)
+
         if position:
             position_origin = position.offset(Point2((-1, -1))).rounded
             main_city.lock_positions(position_origin, Point2((2, 2)))

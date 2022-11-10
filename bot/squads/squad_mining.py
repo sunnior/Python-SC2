@@ -51,7 +51,7 @@ class SquadMining(Squad):
                 return workers_per_vespene[1].pop()
 
     def get_saturation_left(self):
-        return len(self.mineral_field) * 2 + 3 - len(self.workers_mineral)
+        return len(self.mineral_field) * 2 + 2 - len(self.workers_mineral)
 
     def get_free_vespene(self):
         #todo

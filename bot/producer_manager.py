@@ -1,8 +1,10 @@
 from bot.orders.order import Order
 from bot.orders.order_unit import OrderUnit
 from bot.orders.order_build import OrderBuild
+from bot.orders.order_upgrade import OrderUpgrade
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
 
 class ProducerManager():
@@ -13,6 +15,10 @@ class ProducerManager():
     def submit(self, order : Order):
         self.orders.append(order)
         order.on_submit(self.bot)
+
+    def unsubmit(self, order: Order):
+        self.orders.remove(order)
+        order.on_unsubmit()
         
     async def step(self):
         for order in self.orders:
@@ -80,4 +86,9 @@ class ProducerManager():
     def on_unit_type_changed(self, unit: Unit, previous_type: UnitTypeId):
         for order in self.orders:
             if isinstance(order, OrderBuild) and order.on_unit_type_changed(unit, previous_type):
+                return
+
+    def on_upgrade_complete(self, upgrade: UpgradeId):
+        for order in self.orders:
+            if isinstance(order, OrderUpgrade) and order.on_upgrade_complete(upgrade):
                 return

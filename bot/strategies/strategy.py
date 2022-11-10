@@ -22,8 +22,19 @@ class Strategy():
 
     def add_acts(self, acts: list[ActBase]):
         for act in acts:
+            if act in self.acts_pending:
+                continue
+            assert(not act.is_start)
+
             self.acts_pending.append(act)
             act.post_init(self.bot)
+
+    def remove_acts(self, act: ActBase):
+        if act in self.acts_pending:
+            self.acts_pending.remove(act)
+        elif act in self.acts:
+            self.acts.remove(act)
+            self.acts_ending.append(act)
 
     async def step(self):
         pass

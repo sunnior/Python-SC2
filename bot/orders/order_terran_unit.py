@@ -31,6 +31,12 @@ class OrderTerranUnit(OrderUnit):
         self.cost_minerals = cost.minerals
         self.cost_supply = self.bot.calculate_supply_cost(self.target_type)
 
+    def on_unsubmit(self):
+        if self.count_wip:
+            #todo cancel build progress
+            pass
+        pass
+
     def is_my_unit(self, unit: Unit) -> bool:
         if unit.is_carrying_vespene:
             #todo 研究下这个是为啥

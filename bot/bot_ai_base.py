@@ -6,6 +6,7 @@ from sc2.bot_ai import BotAI
 from bot.producer_manager import ProducerManager
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point3
 from sc2.unit import Unit
 
@@ -66,6 +67,9 @@ class BotAIBase(BotAI):
     async def on_unit_created(self, unit: Unit):
         self.producer.on_unit_created(unit)
         self.strategy._on_unit_created(unit)
+
+    async def on_upgrade_complete(self, upgrade: UpgradeId):
+        self.producer.on_upgrade_complete(upgrade)
 
     async def on_building_construction_complete(self, unit: Unit):
         self.producer.on_building_construction_complete(unit)

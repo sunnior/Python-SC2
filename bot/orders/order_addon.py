@@ -17,9 +17,9 @@ class OrderAddon(OrderBuild):
         self.out_build = None
         if unit_type == UnitTypeId.ORBITALCOMMAND:
             self.from_type = UnitTypeId.COMMANDCENTER
-        elif unit_type == UnitTypeId.BARRACKSREACTOR:
+        elif unit_type == UnitTypeId.BARRACKSREACTOR or unit_type == UnitTypeId.BARRACKSTECHLAB:
             self.from_type = UnitTypeId.BARRACKS
-        elif unit_type == UnitTypeId.FACTORYTECHLAB:
+        elif unit_type == UnitTypeId.FACTORYTECHLAB or unit_type == UnitTypeId.FACTORYREACTOR:
             self.from_type = UnitTypeId.FACTORY
         else:
             assert(False)
@@ -46,7 +46,7 @@ class OrderAddon(OrderBuild):
 
     async def produce(self):
         for builder in self.bot.structures:
-            if builder.type_id == self.from_type:
+            if builder.type_id == self.from_type and not builder.has_add_on:
                 if builder.build_progress == 1 and len(builder.orders) == 0:
                     if builder.train(self.target_type):
                         self.builder_tag = builder.tag

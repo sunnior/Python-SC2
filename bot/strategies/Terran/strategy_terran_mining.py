@@ -63,12 +63,13 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
 
         act_build_orders = [
             ActSequence(ActCheckSupplyUsed(15), ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)),  
-            ActSequence(ActCheckSupplyUsed(18), ActCheckBuildReady(UnitTypeId.BARRACKS), ActOrderBuildAddon(UnitTypeId.ORBITALCOMMAND, self.build_helper)), 
-            ActSequence(ActCheckSupplyUsed(20), ActOrderBuild(UnitTypeId.COMMANDCENTER, self.build_helper)),
+            ActSequence(ActCheckSupplyUsed(19), ActOrderBuild(UnitTypeId.COMMANDCENTER, self.build_helper)),
+            ActSequence(ActCheckSupplyUsed(22), ActCheckBuildReady(UnitTypeId.BARRACKS), ActOrderBuildAddon(UnitTypeId.ORBITALCOMMAND, self.build_helper)), 
         ]
         self.add_acts(act_build_orders)
 
         self.act_order_worker = ActOrderTerranUnit(UnitTypeId.SCV, 999)
+        self.is_order_worker = True
         self.add_acts([self.act_order_worker])
 
     def start(self):
@@ -110,6 +111,20 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
     async def step(self):
         self.step_new_worker()
         self.step_balance_worker()
+
+        saturation_left = 0
+        for squad in self.squads_mining:
+            saturation_left = saturation_left + squad.get_saturation_left()
+
+        #留几个作为builder
+        if saturation_left < -2:
+            if self.is_order_worker:
+                self.remove_acts(self.act_order_worker)
+                self.is_order_worker = False
+        else:
+            if not self.is_order_worker:
+                self.add_acts([self.act_order_worker])
+                self.is_order_worker = True
 
     def create_squad_mining(self, townhall: Unit):
         squad_mining = SquadMining(self.bot, townhall)

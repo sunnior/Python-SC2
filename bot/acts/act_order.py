@@ -7,7 +7,9 @@ from bot.orders.order_addon import OrderAddon
 from bot.orders.order_build import OrderBuild
 from bot.orders.order_build_woker import OrderBuildWorker
 from bot.orders.order_terran_unit import OrderTerranUnit
+from bot.orders.order_upgrade import OrderUpgrade
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
 
 class ActOrder(ActBase):
@@ -55,8 +57,14 @@ class ActOrderTerranUnit(ActOrder):
     async def start(self):
         await super().start()
         self.order = OrderTerranUnit(self.unit_type, self.count)
-        self.bot.producer.submit(self.order)     
+        self.bot.producer.submit(self.order)
 
+    async def stop(self):
+        await super().stop()     
+        if not self.order.is_done:
+            self.bot.producer.unsubmit(self.order)
+            self.order = None
+            
     async def execute(self) -> bool:
         self.out_units = self.order.out_units
         if self.order.is_done:
@@ -84,13 +92,30 @@ class ActOrderBuildAddon(ActOrder):
         self.bot.producer.submit(self.order)
 
     async def execute(self) -> bool:
-        if self.order.is_done:
-            return True
-        else:
-            return False            
+        return self.order.is_done    
 
     def debug_string(self) -> str:
         if self.order:
             return self.order.debug_string()
         else:
             return "$Addon-" + str(self.unit_type).replace("UnitTypeId.", "")
+
+class ActOrderUpgrade(ActOrder):
+    def __init__(self, upgrade_id: UpgradeId):
+        super().__init__()
+        self.upgrade_id = upgrade_id
+        self.order = None
+
+    async def start(self):
+        await super().start()
+        self.order = OrderUpgrade(self.upgrade_id)
+        self.bot.producer.submit(self.order)
+
+    async def execute(self) -> bool:
+        return self.order.is_done    
+
+    def debug_string(self) -> str:
+        if self.order:
+            return self.order.debug_string()
+        else:
+            return "$Upgrade-" +str(self.upgrade_id).replace("UpgradeId.", "")

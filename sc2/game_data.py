@@ -168,7 +168,8 @@ class UnitTypeData:
         if self.creation_ability is None:
             return None
         #todo 自己修复一下
-        if self.id == UnitTypeId.BARRACKSREACTOR or self.id == UnitTypeId.FACTORYTECHLAB:
+        addon_ids = [ UnitTypeId.BARRACKSREACTOR, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.FACTORYREACTOR, UnitTypeId.FACTORYTECHLAB ]
+        if self.id in addon_ids:
             return 1
 
         return self.creation_ability._proto.footprint_radius

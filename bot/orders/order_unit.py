@@ -54,7 +54,8 @@ class OrderUnit(Order):
             return False
 
         self.out_units.append(unit)
-        assert(self.count_wip > 0)
+        #todo 实现取消
+        #assert(self.count_wip > 0)
         self.count_wip = self.count_wip - 1
         if self.count_pending == 0 and self.count_wip == 0:
             self.is_done = True

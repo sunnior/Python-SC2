@@ -26,11 +26,11 @@ class Order():
 
     @property
     def has_item(self) -> bool:
-        return False
+        assert(False)
 
     @property
     def is_producing(self) -> bool:
-        return False
+        assert(False)
 
     async def step(self):
         pass
