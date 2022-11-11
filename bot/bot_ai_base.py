@@ -40,6 +40,9 @@ class BotAIBase(BotAI):
 
         self.producer.post_step()
 
+        if len(self.state.action_errors):
+            print("***********************************error*******************************\n", self.state.action_errors)
+
         debug_str = self.strategy.debug("")
         self.client.debug_text_screen(debug_str, (0, 0), (0, 255, 0), 12)
 

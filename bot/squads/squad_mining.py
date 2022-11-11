@@ -54,8 +54,8 @@ class SquadMining(Squad):
         return len(self.mineral_field) * 2 + 2 - len(self.workers_mineral)
 
     def get_free_vespene(self):
-        #todo
-        return self.vespene_geyser[0]
+        if len(self.vespene_geyser):
+            return self.vespene_geyser[0]
 
     def on_building_construction_complete(self, unit: Unit):
         if unit.type_id == UnitTypeId.REFINERY:

@@ -5,10 +5,12 @@ from sc2.bot_ai import BotAI
 from bot.orders.order import Order
 from bot.orders.order_unit import OrderUnit
 from sc2.data import Race
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.dicts.unit_trained_from import UNIT_TRAINED_FROM
+from sc2.dicts.unit_train_build_abilities import TRAIN_INFO
 
 class OrderTerranUnit(OrderUnit):
     def __init__(self, unit_type : UnitTypeId, count : int) -> None:
@@ -39,7 +41,7 @@ class OrderTerranUnit(OrderUnit):
         return True
 
     def try_new_unit(self) -> Optional[Point2]:
-        builders = None
+        builders: list[Unit] = []
         for builder in self.bot.structures:
             if builder.type_id not in self.builder_types:
                 continue
@@ -47,19 +49,40 @@ class OrderTerranUnit(OrderUnit):
             if builder.build_progress != 1:
                 continue
             
+            if builder.has_add_on:
+                if len(builder.orders) and builder.orders[0].ability.id in [ AbilityId.BUILD_REACTOR, AbilityId.BUILD_TECHLAB ]:
+                    #如果还有build reactor的残留，那就不要，这个api导致的，没办法
+                    continue
+
             order_cap = 1
-            if builder.type_id == UnitTypeId.BARRACKS:
-                add_on_tag = builder.add_on_tag
-                if add_on_tag != 0:
-                   add_on = self.bot.structures.find_by_tag(add_on_tag)
-                   if add_on.type_id == UnitTypeId.BARRACKSREACTOR:
-                        #todo 缓存？
-                        order_cap = 2
+            if builder.has_reactor:                
+                order_cap = 2
         
             if len(builder.orders) == order_cap:
                 continue
 
+            is_prefer_builder = True
+            if "requires_techlab" in TRAIN_INFO[builder.type_id][self.target_type]:
+                if not builder.has_techlab:
+                    continue
+            else:
+                if builder.has_techlab:
+                    is_prefer_builder = False
+
+            if is_prefer_builder:
+                builders.insert(0, builder)
+            else:
+                builders.append(builder)
+
+        for builder in builders:
             if builder.train(self.target_type):
+                if builder.type_id == UnitTypeId.BARRACKS:
+                    if builder.has_reactor:
+                        add_on = self.bot.structures.find_by_tag(builder.add_on_tag)
+                        if len(builder.orders):
+                            print("produce ", self.target_type, add_on.build_progress, builder.orders[0].ability.id)
+                    else:
+                        print("produce ", self.target_type, "no reactor")
                 return builder.position
 
     def debug_string(self) -> str:

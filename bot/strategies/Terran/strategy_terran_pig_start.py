@@ -28,7 +28,7 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
         is_lock_addon = False
         if unit_type == UnitTypeId.SUPPLYDEPOT:
             position = await self.get_supplydepot_position(unit_type)
-        elif unit_type in [UnitTypeId.BARRACKS, UnitTypeId.FACTORY]:
+        elif unit_type in [UnitTypeId.BARRACKS, UnitTypeId.FACTORY, UnitTypeId.STARPORT]:
             position = await self.get_army_building_position(unit_type)
             is_lock_addon = True
         elif unit_type == UnitTypeId.COMMANDCENTER:
@@ -43,7 +43,9 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
             main_city.lock_positions(position_origin, Point2((int(radius * 2), int(radius * 2))))
             self.reserve_positions.append(position_origin)
             if is_lock_addon:
-                main_city.lock_positions(position_origin.offset(Point2((int(radius * 2), 0))), Point2((2, 2)))
+                position_addon = position_origin.offset(Point2((int(radius * 2), 0)))
+                self.reserve_positions.append(position_addon)
+                main_city.lock_positions(position_addon, Point2((2, 2)))
 
         return position
 
@@ -66,7 +68,7 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
         is_lock_position = True
         if unit.type_id == UnitTypeId.SUPPLYDEPOT:
             unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
-        elif unit.type_id in [ UnitTypeId.BARRACKS, UnitTypeId.FACTORY ]:
+        elif unit.type_id in [ UnitTypeId.BARRACKS, UnitTypeId.FACTORY, UnitTypeId.STARPORT ]:
             if self.is_choke_open:
                 #todo 
                 self.is_choke_open = self.is_choke_open - 1
@@ -74,7 +76,7 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
         elif unit.type_id == UnitTypeId.COMMANDCENTER:
             self.strategy_mining.create_squad_mining(unit)
             is_lock_position = False
-        elif unit.type_id == UnitTypeId.REFINERY:
+        elif unit.type_id in [ UnitTypeId.REFINERY, UnitTypeId.ORBITALCOMMAND ]:
             is_lock_position = False
 
         if is_lock_position:
@@ -85,10 +87,11 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
             self.reserve_positions.remove(position_origin)
             main_city.unlock_positions(position_origin, Point2((int(radius * 2), int(radius * 2))))
 
-        self.strategy_mining.add_worker(worker_tag)
+        if worker_tag:
+            self.strategy_mining.add_worker(worker_tag)
 
     def on_addon_complete(self, unit: Unit):
-        pass
+        self.on_build_complete(unit, None)
 
     def get_worker(self, near: Point2) -> Optional[Unit]:
         return self.strategy_mining.remove_worker(near)
@@ -128,9 +131,21 @@ class StrategyTerranPigStart(Strategy):
     def setup_build_order(self):
         acts: list[ActBase] = [
             ActSequence(
-                ActCheckBuildReady(UnitTypeId.BARRACKS),
-                ActOrderTerranUnit(UnitTypeId.REAPER, 1),
-                ActOrderTerranUnit(UnitTypeId.MARINE, 999)
+                ActCheckBuildReady(UnitTypeId.BARRACKSTECHLAB),
+                ActLoop(
+                    ActAnd(
+                        ActOrderTerranUnit(UnitTypeId.MARINE, 2),
+                        ActOrderTerranUnit(UnitTypeId.MARAUDER, 2)
+                    )
+                )
+            ),
+            ActSequence(
+                ActCheckBuildReady(UnitTypeId.FACTORYTECHLAB),
+                ActOrderTerranUnit(UnitTypeId.SIEGETANK, 999),
+            ),
+            ActSequence(
+                ActCheckBuildReady(UnitTypeId.STARPORTREACTOR),
+                ActOrderTerranUnit(UnitTypeId.MEDIVAC, 999),
             ),
             ActSequence(
                 ActCheckSupplyUsed(14), 
@@ -143,6 +158,7 @@ class StrategyTerranPigStart(Strategy):
                 ActAnd(
                     ActSequence(
                         ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper), 
+                        ActOrderTerranUnit(UnitTypeId.REAPER, 1),
                         ActOrderBuildAddon(UnitTypeId.BARRACKSREACTOR, self.build_helper)
                     ),
                     ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)
@@ -165,12 +181,37 @@ class StrategyTerranPigStart(Strategy):
                     ActSequence(
                         ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper),
                         ActOrderBuildAddon(UnitTypeId.BARRACKSTECHLAB, self.build_helper)
-                    )
+                    ),
+                    ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)
                 ),
                 ActAnd(
                     ActOrderUpgrade(UpgradeId.STIMPACK),
                     ActOrderUpgrade(UpgradeId.SHIELDWALL)
                 )                
+            ),
+            ActSequence(
+                ActCheckSupplyUsed(35),
+                ActOrderBuild(UnitTypeId.FACTORY, self.build_helper),
+                ActAnd(
+                    ActSequence(
+                        ActOrderBuild(UnitTypeId.STARPORT, self.build_helper),
+                        ActOrderBuildAddon(UnitTypeId.STARPORTREACTOR, self.build_helper),
+                    ),
+                    ActOrderBuildAddon(UnitTypeId.FACTORYTECHLAB, self.build_helper),
+                    ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)
+                ),
+                ActCheckSupplyUsed(90),
+                ActAnd(
+                    ActSequence(
+                        ActOrderBuild(UnitTypeId.FACTORY, self.build_helper),
+                        ActOrderBuildAddon(UnitTypeId.FACTORYTECHLAB, self.build_helper),
+                    ),
+                    ActSequence(
+                        ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper),
+                        ActOrderBuildAddon(UnitTypeId.BARRACKSREACTOR, self.build_helper),
+                    ),
+                    ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)
+                ),
             ),
             ActLoop(
                 ActSequence(

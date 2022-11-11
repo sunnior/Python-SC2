@@ -168,7 +168,7 @@ class UnitTypeData:
         if self.creation_ability is None:
             return None
         #todo 自己修复一下
-        addon_ids = [ UnitTypeId.BARRACKSREACTOR, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.FACTORYREACTOR, UnitTypeId.FACTORYTECHLAB ]
+        addon_ids = [ UnitTypeId.BARRACKSREACTOR, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.FACTORYREACTOR, UnitTypeId.FACTORYTECHLAB, UnitTypeId.STARPORTREACTOR, UnitTypeId.STARPORTTECHLAB ]
         if self.id in addon_ids:
             return 1
 

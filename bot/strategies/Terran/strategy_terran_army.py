@@ -30,6 +30,6 @@ class StrategyTerranArmy(Strategy):
     def on_build_complete(self, unit: Unit):
         if unit.type_id == UnitTypeId.BARRACKS:
             unit(AbilityId.RALLY_BUILDING, self.rally_point_small)
-        elif unit.type_id == UnitTypeId.FACTORY:
+        else:
             unit(AbilityId.RALLY_BUILDING, self.rally_point_large)
 

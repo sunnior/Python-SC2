@@ -15,12 +15,15 @@ class OrderAddon(OrderBuild):
 
         self.from_type = None
         self.out_build = None
+        #todo
         if unit_type == UnitTypeId.ORBITALCOMMAND:
             self.from_type = UnitTypeId.COMMANDCENTER
         elif unit_type == UnitTypeId.BARRACKSREACTOR or unit_type == UnitTypeId.BARRACKSTECHLAB:
             self.from_type = UnitTypeId.BARRACKS
         elif unit_type == UnitTypeId.FACTORYTECHLAB or unit_type == UnitTypeId.FACTORYREACTOR:
             self.from_type = UnitTypeId.FACTORY
+        elif unit_type == UnitTypeId.STARPORTREACTOR or unit_type == UnitTypeId.STARPORTTECHLAB:
+            self.from_type = UnitTypeId.STARPORT
         else:
             assert(False)
 
@@ -50,6 +53,7 @@ class OrderAddon(OrderBuild):
                 if builder.build_progress == 1 and len(builder.orders) == 0:
                     if builder.train(self.target_type):
                         self.builder_tag = builder.tag
+                        print("produce addon ", self.target_type)
                         return True
     
     def on_unit_type_changed(self, unit: Unit, previous_type: UnitTypeId):
