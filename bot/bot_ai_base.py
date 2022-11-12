@@ -1,13 +1,10 @@
-from distutils.command.build import build
 from MapAnalyzer.MapData import MapData
 from bot.city.city import City
-from bot.squads.squad import Squad
 from sc2.bot_ai import BotAI
 from bot.producer_manager import ProducerManager
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.position import Point3
 from sc2.unit import Unit
 
 class BotAIBase(BotAI):
@@ -16,7 +13,6 @@ class BotAIBase(BotAI):
         super().__init__()
         self.producer = ProducerManager(self)
         self.strategy = None
-        self.squads: list[Squad] = []
         self.race: Race = None
         self.locked_build_types: list[UnitTypeId] = []
         self.cities: list[City] = []
@@ -33,9 +29,7 @@ class BotAIBase(BotAI):
 
     async def on_step(self, iteration: int):
         await self.producer.step()
-        for squad in self.squads:
-            squad.step()
-            
+
         await self.strategy._step()
 
         self.producer.post_step()

@@ -62,6 +62,10 @@ class Strategy():
 
         await self.step()
 
+        for squad in self.squads:
+            squad.step()
+            
+
         for strategy in self.substrategies:
             await strategy._step()
 
@@ -69,9 +73,8 @@ class Strategy():
         strategy.post_init(self.bot)
         self.substrategies.append(strategy)
 
-    def submit_squad(self, squad):
+    def add_squad(self, squad):
         self.squads.append(squad)
-        self.bot.squads.append(squad)
         squad.on_submit()
 
     def on_unit_created(self, unit: Unit):
@@ -115,6 +118,7 @@ class Strategy():
         next_prefix = prefix + "  "
         for strategy in self.substrategies:
             debug_info = debug_info + next_prefix + "L " + strategy.debug(next_prefix + "  ")
+            debug_info = debug_info + "\n"
 
         return debug_info
 

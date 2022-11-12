@@ -6,6 +6,7 @@ from sc2.unit import Unit
 class OrderBuild(Order):
     def __init__(self) -> None:
         super().__init__()
+        self.priority = Order.prio_highest
 
     def on_building_construction_complete(self, unit: Unit):
         return False

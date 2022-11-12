@@ -27,7 +27,7 @@ class OrderBuildWorker(OrderBuild):
         self.cost_minerals = cost.minerals
 
     @property
-    def has_item(self) -> bool:
+    def has_requests(self) -> bool:
         return not self.worker_tag
 
     @property

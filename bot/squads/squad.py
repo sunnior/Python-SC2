@@ -19,4 +19,4 @@ class Squad():
         pass
 
     def debug_string(self) -> str:
-        return "Squad"
+        return "Unkown"

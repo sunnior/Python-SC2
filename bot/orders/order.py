@@ -7,6 +7,11 @@ from sc2.unit import Unit
 
 
 class Order():
+    prio_highest = 0
+    prio_high = 1
+    prio_medium = 2
+    prio_low = 3
+
     def __init__(self) -> None:
         self.is_done = False
         self.cost_minerals = 0
@@ -14,9 +19,7 @@ class Order():
         self.cost_supply = 0
         self.debug_progress_char = "\\"
 
-        self.is_reserved = False
-
-        self.priority = 0
+        self.priority = Order.prio_low
 
     def on_submit(self, bot: BotAI):
         self.bot = bot
@@ -25,7 +28,7 @@ class Order():
         pass
 
     @property
-    def has_item(self) -> bool:
+    def has_requests(self) -> bool:
         assert(False)
 
     @property
@@ -34,9 +37,6 @@ class Order():
 
     async def step(self):
         pass
-
-    def reserve(self):
-        self.is_reserved = True
 
     async def produce(self) -> bool:
         return False

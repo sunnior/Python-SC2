@@ -12,7 +12,7 @@ class OrderUpgrade(Order):
         self.build_tag = None
 
     @property
-    def has_item(self) -> bool:
+    def has_requests(self) -> bool:
         return not self.build_tag
 
     @property

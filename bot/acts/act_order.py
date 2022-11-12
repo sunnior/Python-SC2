@@ -15,7 +15,11 @@ from sc2.unit import Unit
 class ActOrder(ActBase):
     def __init__(self):
         super().__init__()
-        
+        self.order: Order = None
+
+    def set_priority(self, priority: int):
+        if self.order:
+            self.order.priority = priority
 
 class ActOrderBuild(ActOrder):
     def __init__(self, build_type: UnitTypeId, build_helper: InterfaceBuildHelper):
@@ -26,7 +30,6 @@ class ActOrderBuild(ActOrder):
 
     async def create_order(self):
         self.order = OrderBuildWorker(self.build_type, self.build_helper)
-        self.order.reserve()
         self.bot.producer.submit(self.order)
 
     async def start(self):
@@ -88,7 +91,6 @@ class ActOrderBuildAddon(ActOrder):
     async def start(self):
         await super().start()
         self.order = OrderAddon(self.unit_type, self.build_helper)
-        self.order.reserve()
         self.bot.producer.submit(self.order)
 
     async def execute(self) -> bool:
@@ -109,7 +111,6 @@ class ActOrderUpgrade(ActOrder):
     async def start(self):
         await super().start()
         self.order = OrderUpgrade(self.upgrade_id)
-        self.order.reserve()
         self.bot.producer.submit(self.order)
 
     async def execute(self) -> bool:

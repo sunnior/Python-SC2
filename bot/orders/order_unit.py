@@ -21,9 +21,10 @@ class OrderUnit(Order):
         self.out_units : list[Unit] = []
         self.count_pending = count
         self.count_wip = 0
+        self.priority = Order.prio_high
 
     @property
-    def has_item(self) -> bool:
+    def has_requests(self) -> bool:
         return self.count_pending > 0
 
     @property

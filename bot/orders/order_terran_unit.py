@@ -76,13 +76,6 @@ class OrderTerranUnit(OrderUnit):
 
         for builder in builders:
             if builder.train(self.target_type):
-                if builder.type_id == UnitTypeId.BARRACKS:
-                    if builder.has_reactor:
-                        add_on = self.bot.structures.find_by_tag(builder.add_on_tag)
-                        if len(builder.orders):
-                            print("produce ", self.target_type, add_on.build_progress, builder.orders[0].ability.id)
-                    else:
-                        print("produce ", self.target_type, "no reactor")
                 return builder.position
 
     def debug_string(self) -> str:

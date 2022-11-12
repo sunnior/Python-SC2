@@ -71,4 +71,4 @@ class SquadMining(Squad):
         for workers_per_vespene in self.workers_vespene:
             count_workers_vespene = count_workers_vespene + len(workers_per_vespene[1])
 
-        return "[SquadMining,M-" + str(len(self.workers_mineral)) + ",V-" + str(count_workers_vespene) + "]"
+        return "[Mining,M-" + str(len(self.workers_mineral)) + ",V-" + str(count_workers_vespene) + "]"

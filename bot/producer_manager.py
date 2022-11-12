@@ -27,47 +27,26 @@ class ProducerManager():
                 order.on_unsubmit()
 
         self.orders = [order for order in self.orders if not order.is_done ]
+        orders_request = [ order for order in self.orders if order.has_requests ]
 
-        pending_orders = [order for order in self.orders if order.has_item ]
-        reserved_orders = []
-        unreserved_orders = []
-        for order in self.orders:
-            if order.has_item:
-                if order.is_reserved:
-                    reserved_orders.append(order)
-                else:
-                    unreserved_orders.append(order)
+        orders_request.sort(key=lambda x: x.priority)
 
-        reserved_minerals = 0
-        reserved_vespene = 0
-        reserved_supply = 0
+        minerals_left = self.bot.minerals
+        vespene_left = self.bot.vespene
+        supply_left = self.bot.supply_left
 
-        for order in reserved_orders:
-            reserved_minerals = reserved_minerals + order.cost_minerals
-            reserved_vespene = reserved_vespene + order.cost_vespene
-            reserved_supply = reserved_supply + order.cost_supply
-    
-        cost_minerals_left = max(0, self.bot.minerals - reserved_minerals)
-        cost_vespene_left = max(0, self.bot.vespene - reserved_vespene)
-        cost_supply_left = max(0, self.bot.supply_left - reserved_supply)
-
-        #优先生成预订的
         is_produced = False
-        for order in reserved_orders:
-            if order.cost_minerals <= self.bot.minerals and order.cost_supply <= self.bot.supply_left and order.cost_vespene <= self.bot.vespene:
+        for order in orders_request:
+            if order.cost_minerals <= minerals_left and order.cost_supply <= supply_left and order.cost_vespene <= vespene_left:
                 #一次只生产一个
                 if await order.produce():
                     is_produced = True
                     break
 
-        if not is_produced:
-            for order in unreserved_orders:
-                if order.cost_minerals <= cost_minerals_left and order.cost_vespene <= cost_vespene_left and order.cost_supply <= cost_supply_left:
-                    #一次只生产一个
-                    if await order.produce():
-                        is_produced = True
-                        break
-        
+            minerals_left = max(0, minerals_left - order.cost_minerals)
+            vespene_left = max(0, vespene_left - order.cost_vespene)
+            supply_left = max(0, supply_left - order.cost_supply)
+
     def post_step(self):
         for order in self.orders:
             order.post_step()

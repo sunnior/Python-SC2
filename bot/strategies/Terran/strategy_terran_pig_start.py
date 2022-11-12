@@ -1,6 +1,6 @@
 from typing import Optional
 from bot.acts.act_base import ActBase
-from bot.acts.act_check_unit import ActCheckBuildReady, ActCheckSupplyUsed
+from bot.acts.act_check_unit import ActCheckSupplyUsed
 from bot.acts.act_flow_control import ActAnd, ActLoop, ActSequence
 from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderTerranUnit, ActOrderUpgrade
 from bot.bot_ai_base import BotAIBase
@@ -131,23 +131,6 @@ class StrategyTerranPigStart(Strategy):
     def setup_build_order(self):
         acts: list[ActBase] = [
             ActSequence(
-                ActCheckBuildReady(UnitTypeId.BARRACKSTECHLAB),
-                ActLoop(
-                    ActAnd(
-                        ActOrderTerranUnit(UnitTypeId.MARINE, 2),
-                        ActOrderTerranUnit(UnitTypeId.MARAUDER, 2)
-                    )
-                )
-            ),
-            ActSequence(
-                ActCheckBuildReady(UnitTypeId.FACTORYTECHLAB),
-                ActOrderTerranUnit(UnitTypeId.SIEGETANK, 999),
-            ),
-            ActSequence(
-                ActCheckBuildReady(UnitTypeId.STARPORTREACTOR),
-                ActOrderTerranUnit(UnitTypeId.MEDIVAC, 999),
-            ),
-            ActSequence(
                 ActCheckSupplyUsed(14), 
                 ActOrderBuild(UnitTypeId.SUPPLYDEPOT, self.build_helper),
                 ActCheckSupplyUsed(20), 
@@ -172,7 +155,7 @@ class StrategyTerranPigStart(Strategy):
                 )
             ),
             ActSequence(
-                ActCheckSupplyUsed(20),
+                ActCheckSupplyUsed(22),
                 ActAnd(
                     ActSequence(
                         ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper),

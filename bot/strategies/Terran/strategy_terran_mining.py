@@ -77,7 +77,7 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
     def create_squad_mining(self, townhall: Unit):
         squad_mining = SquadMining(self.bot, townhall)
         self.squads_mining.append(squad_mining)
-        self.submit_squad(squad_mining)
+        self.add_squad(squad_mining)
 
     def add_worker(self, worker_tag: int):
         self.squads_mining[0].add_worker(self.bot.workers.find_by_tag(worker_tag))
