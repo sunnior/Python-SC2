@@ -9,10 +9,15 @@ from sc2.unit import Unit
 
 
 class City():
-    grid_index_hole = 0
+    grid_index_null = 0
     grid_index_empty = 1
     grid_index_building = 2
-    grid_index_mining_path = 3
+
+    block_index_null = 0
+    block_index_mining_area = 1
+    block_index_choke = 2
+    block_index_near_base = 3
+    block_index_back = 4
 
     def __init__(self, bot : BotAI, map_data: MapData, region: Region) -> None:
         self.bot = bot
@@ -30,16 +35,26 @@ class City():
         #表示唯一的，这块地上有什么
         self.grid_build = numpy.zeros((self.region_width, self.region_height)).astype(int)
         self.grid_distance_to_choke = numpy.empty(shape=(self.region_width, self.region_height)).astype(int)
-        self.grid_distance_to_choke.fill(9999)
+        self.grid_distance_to_choke.fill(1000)
+        self.grid_distance_to_edge = numpy.empty(shape=(self.region_width, self.region_height)).astype(int)
+        self.grid_distance_to_edge.fill(1000)
+        self.grid_road = numpy.zeros((self.region_width, self.region_height)).astype(int)
+
         self.grid_lock = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
+        self.grid_blocks = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
 
         self._cal_grid_base()
         self._cal_grid_resources()
-        self._cal_grid_mining_path()
-        self._cal_grid_to_choke_distance()
+        self._cal_distance_to_edge()
+        self._cal_distance_to_choke()
+
+        self._cal_block_choke()
+        self._cal_block_mining()
+        self._cal_block_back()
+        self._cal_block_base()
 
     def _cal_grid_base(self):
-        placement_grid = self.map_data.placement_arr.T        
+        # placement_grid = self.map_data.placement_arr.T
         for world_point in self.region.buildables.points:
             local_point = world_point.offset(-self.region_origin)
             self.grid_build[local_point[0]][local_point[1]] = City.grid_index_empty
@@ -55,6 +70,12 @@ class City():
             for x in range(local_pos[0], local_pos[0] + 2):
                 self.grid_build[x][local_pos[1]] = City.grid_index_building
 
+            for x in range(local_pos[0] - 1, local_pos[0] + 3):
+                for y in range(local_pos[1] - 1, local_pos[1] + 2):
+                    #todo 不知道为啥矿的周围有洞
+                    if self.grid_build[x][y] != City.grid_index_building:
+                        self.grid_build[x][y] = City.grid_index_empty
+
         for vespene_geyser in resource_list.vespene_geyser:
             vespene_geyser_center = vespene_geyser.position.rounded
             vespene_geyser_pos = vespene_geyser.position.offset(Point2((-1.5, -1.5))).rounded
@@ -66,12 +87,122 @@ class City():
 
         townhall_position = townhall.position.offset(Point2((-2.5, -2.5))).rounded
         local_townhall_pos = townhall_position.offset(-self.region_origin)
-        
+
+        #todo 我也不知道为什么，在基地的周围会有一圈空的
+        for x in range(local_townhall_pos[0] - 1, local_townhall_pos[0] + 6):
+            for y in range(local_townhall_pos[1] - 1, local_townhall_pos[1] + 6):
+                self.grid_build[x][y] = City.grid_index_empty
+
         for x in range(local_townhall_pos[0], local_townhall_pos[0] + 5):
             for y in range(local_townhall_pos[1], local_townhall_pos[1] + 5):
                 self.grid_build[x][y] = City.grid_index_building
 
-    def _cal_grid_mining_path(self):
+    def _cal_block_back(self):
+        townhall = self.bot.townhalls[0]
+        expansion_locations_dict = self.bot.expansion_locations_dict
+        resource_list = expansion_locations_dict[townhall.position]
+
+        scan_points = []
+        next_scan_points = []
+        for mineral_field in resource_list.mineral_field:
+            mineral_pos = mineral_field.position.offset(Point2((-1, 0))).rounded
+            local_pos = mineral_pos.offset(-self.region_origin)
+            for x in range(local_pos[0], local_pos[0] + 2):
+                scan_points.append(Point2((x, local_pos[1])))
+
+        while len(scan_points):
+            for point in scan_points:
+                if self.grid_build[point[0]][point[1]] == City.grid_index_empty:
+                    self.grid_blocks[point[0]][point[1]] = City.block_index_back
+                    self.grid_road[point[0]][point[1]] = 0
+
+                distance_to_edge = self.grid_distance_to_edge[point[0]][point[1]]
+                new_points = []
+                for x in range(point[0] - 1, point[0] + 2):
+                    for y in range(point[1] - 1, point[1] + 2):
+                        new_points.append(Point2((x, y)))
+                for new_point in new_points:
+                    if not self.is_point_in_region_box(new_point):
+                        continue
+
+                    if self.grid_blocks[new_point[0]][new_point[1]] != City.block_index_null:
+                        continue
+
+                    if self.grid_distance_to_edge[new_point[0]][new_point[1]] >= distance_to_edge:
+                        if self.grid_build[new_point[0]][new_point[1]] == City.grid_index_empty:
+                            self.grid_road[new_point[0]][new_point[1]] = 1
+                        continue
+                    
+                    next_scan_points.append(new_point)
+
+            scan_points.clear()
+            scan_points, next_scan_points = next_scan_points, scan_points    
+        
+    def _cal_block_base(self):
+        extend = 8
+        townhall = self.bot.townhalls[0]
+        townhall_position = townhall.position.offset(Point2((-2.5, -2.5))).rounded
+        local_townhall_pos = townhall_position.offset(-self.region_origin)
+
+        bound_min = Point2((local_townhall_pos[0] - extend, local_townhall_pos[1] - extend))
+        bound_max = Point2((local_townhall_pos[0] + 5 + extend, local_townhall_pos[1] + 5 + extend))
+
+        scan_points = []
+        for x in range(local_townhall_pos[0] - 1, local_townhall_pos[0] + 6):
+            for y in range(local_townhall_pos[1] - 1, local_townhall_pos[1] + 6):
+                point = Point2((x, y))
+                if self.grid_build[x][y] == City.grid_index_empty and self.grid_blocks[x][y] == City.block_index_null:
+                    scan_points.append(point)
+                    self.grid_blocks[x][y] = City.block_index_near_base
+
+        next_scan_points = []
+        while len(scan_points):
+            for point in scan_points:
+                new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
+                for new_point in new_points:
+                    if (
+                        not self.is_point_in_region_box(new_point) or
+                        self.grid_build[new_point[0]][new_point[1]] != City.grid_index_empty or
+                        self.grid_blocks[new_point[0]][new_point[1]] != City.block_index_null or
+                        self.grid_distance_to_edge[new_point[0]][new_point[1]] < 2 or
+                        self.grid_road[new_point[0]][new_point[1]]
+                    ):
+                        continue                    
+
+                    #if new_point[0] < bound_min[0] or new_point[0] > bound_max[0] or new_point[1] < bound_min[1] or new_point[1] > bound_max[1]:
+                        #continue
+                    
+                    self.grid_blocks[new_point[0]][new_point[1]] = City.block_index_near_base
+                    next_scan_points.append(new_point)
+
+            scan_points.clear()
+            next_scan_points, scan_points = scan_points, next_scan_points
+
+    def _cal_block_choke(self):
+        choke_points_x = [ point[0] for point in self.choke_points ]
+        choke_points_y = [ point[1] for point in self.choke_points ]
+        
+        choke_min_x = min(choke_points_x)
+        choke_max_x = max(choke_points_x)
+        choke_min_y = min(choke_points_y)
+        choke_max_y = max(choke_points_y)
+    
+        choke_min_x_ex = min(choke_min_x, choke_max_x - 6)
+        choke_max_x_ex = max(choke_max_x, choke_min_x + 6)
+        choke_max_y_ex = max(choke_max_y, choke_min_y + 6)
+        choke_min_y_ex = min(choke_min_y, choke_max_y - 6)
+
+        for x in range(choke_min_x_ex - 2, choke_max_x_ex + 1 + 2):
+            for y in range(choke_min_y_ex - 2, choke_max_y_ex + 1 + 2):
+                if x < choke_min_x_ex or x > choke_max_x_ex or y < choke_min_y_ex or y > choke_max_y_ex:
+                    if self.is_point_in_region_box(Point2((x, y))) and self.grid_build[x][y] == City.grid_index_empty:
+                        self.grid_road[x][y] = 1
+                        continue
+
+                if self.is_point_in_region_box(Point2((x, y))) and self.grid_build[x][y] != City.grid_index_null:
+                    self.grid_blocks[x][y] = City.block_index_choke        
+
+    def _cal_block_mining(self):
         townhall = self.bot.townhalls[0]
         townhall_center = townhall.position.rounded.offset(-self.region_origin)
         expansion_locations_dict = self.bot.expansion_locations_dict
@@ -97,11 +228,46 @@ class City():
             for point in test_points:
                 for x in range(point[0] - 1, point[0] + 2):
                     for y in range(point[1] - 1, point[1] + 2):
+                        self.grid_blocks[x][y] = City.block_index_mining_area
+                        self.grid_road[x][y] = 1
 
-                        if self.grid_build[x][y] != 2:
-                            self.grid_build[x][y] = self.grid_index_mining_path
+    def _cal_distance_to_edge(self):
+        def is_edge_point(point: Point2):
+            new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
+            for point in new_points:
+                if not self.is_point_in_region_box(point) or self.grid_build[point[0]][point[1]] == City.grid_index_null:
+                    return True
 
-    def _cal_grid_to_choke_distance(self):
+            return False
+
+        scan_points = []
+        next_scan_points = []
+        for x in range(0, self.region_width):
+            for y in range(0, self.region_height):
+                if self.grid_build[x][y] == City.grid_index_null:
+                    continue
+
+                if is_edge_point(Point2((x, y))):
+                    scan_points.append(Point2((x, y)))
+                    self.grid_distance_to_edge[x][y] = 0
+                
+        distance = 1
+        while len(scan_points):
+            for point in scan_points:
+                new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ]
+                for new_point in new_points: 
+                    if  not self.is_point_in_region_box(new_point) or self.grid_build[new_point[0]][new_point[1]] == City.grid_index_null:
+                            continue
+                        
+                    if self.grid_distance_to_edge[new_point[0]][new_point[1]] > distance:
+                        self.grid_distance_to_edge[new_point[0]][new_point[1]] = distance
+                        next_scan_points.append(new_point)
+
+            distance = distance + 1
+            scan_points.clear()
+            scan_points, next_scan_points = next_scan_points, scan_points
+
+    def _cal_distance_to_choke(self):
 
         choke = self.region.region_chokes[0]
         choke_points = choke.buildables.points
@@ -128,15 +294,17 @@ class City():
             for point in scan_points:
                 new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
                 new_points = [ new_point for new_point in new_points if self.is_point_in_region_box(new_point) and 
-                                                                        (self.grid_build[new_point[0]][new_point[1]] == City.grid_index_empty or self.grid_build[new_point[0]][new_point[1]] == City.grid_index_mining_path) and 
+                                                                        self.grid_build[new_point[0]][new_point[1]] == City.grid_index_empty and 
                                                                         grid_scaned[new_point[0]][new_point[1]] == 0]
                 for new_point in new_points:
                     grid_scaned[new_point[0]][new_point[1]] = 1
                     self.grid_distance_to_choke[new_point[0]][new_point[1]] = distance
+
                 next_scan_points = next_scan_points + new_points                 
 
-            scan_points = next_scan_points.copy()
-            next_scan_points.clear()
+            scan_points.clear()
+            scan_points, next_scan_points = next_scan_points, scan_points
+
             distance = distance + 1
 
     def terrain_to_z_height(self, h):
@@ -154,7 +322,7 @@ class City():
         if not self.is_point_in_region_box(point):
             return False
         
-        if self.grid_build[point[0]][point[1]] != City.grid_index_empty or self.grid_lock[point[0]][point[1]] != 0:
+        if self.grid_build[point[0]][point[1]] != City.grid_index_empty or self.grid_lock[point[0]][point[1]] != 0 or self.grid_road[point[0]][point[1]]:
             return False
 
         return True
@@ -234,8 +402,8 @@ class City():
                     position = possible[0]
                     return position
 
-            scan_points = next_scan_points.copy()
-            next_scan_points.clear()
+            scan_points.clear()
+            scan_points, next_scan_points = next_scan_points, scan_points
             distance = distance + 1
 
         assert(False)
@@ -302,8 +470,8 @@ class City():
                     position = possible[0]
                     return position
 
-            scan_points = next_scan_points.copy()
-            next_scan_points.clear()
+            scan_points.clear()
+            scan_points, next_scan_points = next_scan_points, scan_points
             distance = distance + 1
 
         assert(False)
@@ -385,8 +553,8 @@ class City():
                     position = possible[0]
                     return position
 
-            scan_points = next_scan_points.copy()
-            next_scan_points.clear()
+            scan_points.clear()
+            scan_points, next_scan_points = next_scan_points, scan_points
             distance = distance + 1
 
         assert(False)
@@ -404,17 +572,10 @@ class City():
                     self.grid_build[x][y] = City.grid_index_building
     
     def debug(self):
-        colors = [
-            (0, 0, 0), 
-            (0, 255, 0),
-            (255, 0, 0),
-            (255, 255, 0),
-            (0, 0, 255), 
-            (255, 0, 255),
-            (0, 255, 255)
-        ]
-
         terrain_height = self.map_data.terrain_height.copy().T
+        if_show_distance_to_choke = False
+        if_show_distance_to_edge = False
+        if_show_block_id = True
 
         for y in range(0, self.region_height):
             for x in range(0, self.region_width):
@@ -422,23 +583,45 @@ class City():
                 height = max(self.terrain_to_z_height(terrain_height[world_point]), 
                             self.terrain_to_z_height(terrain_height[world_point.offset(Point2((1, 0)))]), 
                             self.terrain_to_z_height(terrain_height[world_point.offset(Point2((0, 1)))]))
-                """
-                distance = self.grid_distance_to_choke[x][y]
-                if distance < 1000:
-                    in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height + 0.45))
-                    self.bot.client.debug_text_world(str(distance), in_point, (255, 255, 255))
+                
+                if if_show_distance_to_choke:
+                    distance = self.grid_distance_to_choke[x][y]
+                    if distance < 100:
+                        in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height + 0.45))
+                        self.bot.client.debug_text_world(str(distance), in_point, (255, 255, 255))
+                elif if_show_distance_to_edge:
+                    distance = self.grid_distance_to_edge[x][y]
+                    if distance < 100:
+                        in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height + 0.45))
+                        self.bot.client.debug_text_world(str(distance), in_point, (255, 255, 255))
+                elif if_show_block_id:
+                    id = self.grid_blocks[x][y]
+                    if id:
+                        in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height + 0.45))
+                        self.bot.client.debug_text_world(str(id), in_point, (255, 255, 255))                
 
-                """
+                
                 grid_value = self.grid_build[x][y]
-                if grid_value != 0:
+                block_value = self.grid_blocks[x][y]
+                
+                if grid_value != City.grid_index_null:
+                    in_color = (255, 255, 255)
+                    if block_value:
+                        in_color = (0, 255, 255)
+                    else:
+                        in_color = (0, 255, 0)
+
+                    if self.grid_road[x][y]:
+                        in_color = (255, 0, 255)
+                    
+                    if grid_value == City.grid_index_building:
+                        in_color = (255, 0, 0)
+
                     in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height))
-                    in_color = colors[grid_value]
                     self.bot.client.debug_box2_out(in_point, half_vertex_length=0.45, color=in_color)
 
                 if self.grid_lock[x][y]:
                     in_point = Point3((world_point[0] + 0.5, world_point[1] + 0.5, height))
-                    in_color = colors[grid_value]
-                    self.bot.client.debug_box2_out(in_point, half_vertex_length=0.35, color=in_color)
-
+                    self.bot.client.debug_box2_out(in_point, half_vertex_length=0.35, color=(255, 255, 0))
 
                             

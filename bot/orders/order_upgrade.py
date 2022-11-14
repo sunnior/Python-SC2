@@ -10,6 +10,7 @@ class OrderUpgrade(Order):
         self.upgrade_id = upgrade_id
         self.build_id: UnitTypeId = UPGRADE_RESEARCHED_FROM[upgrade_id]
         self.build_tag = None
+        self.priority = Order.prio_highest
 
     @property
     def has_requests(self) -> bool:
