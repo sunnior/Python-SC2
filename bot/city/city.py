@@ -14,9 +14,9 @@ class City():
     grid_index_building = 2
 
     block_index_null = 0
-    block_index_mining_area = 1
+    block_index_mining = 1
     block_index_choke = 2
-    block_index_near_base = 3
+    block_index_base = 3
     block_index_back = 4
 
     def __init__(self, bot : BotAI, map_data: MapData, region: Region) -> None:
@@ -33,15 +33,20 @@ class City():
         self.choke_points: list[Point2] = []
 
         #表示唯一的，这块地上有什么
-        self.grid_build = numpy.zeros((self.region_width, self.region_height)).astype(int)
-        self.grid_distance_to_choke = numpy.empty(shape=(self.region_width, self.region_height)).astype(int)
+        self.grid_build = numpy.zeros((self.region_width, self.region_height), dtype=numpy.int16)
+        self.grid_distance_to_choke = numpy.empty(shape=(self.region_width, self.region_height), dtype=numpy.int16)
         self.grid_distance_to_choke.fill(1000)
-        self.grid_distance_to_edge = numpy.empty(shape=(self.region_width, self.region_height)).astype(int)
+        self.grid_distance_to_edge = numpy.empty(shape=(self.region_width, self.region_height), dtype=numpy.int16)
         self.grid_distance_to_edge.fill(1000)
-        self.grid_road = numpy.zeros((self.region_width, self.region_height)).astype(int)
+        self.grid_road = numpy.zeros((self.region_width, self.region_height), dtype=numpy.int16)
 
-        self.grid_lock = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
-        self.grid_blocks = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
+        self.grid_lock = numpy.zeros(shape=(self.region_width, self.region_height), dtype=numpy.int16)
+        self.grid_blocks = numpy.zeros(shape=(self.region_width, self.region_height), dtype=numpy.int16)
+
+        self.points_block_choke = []
+        self.points_block_base = []
+        self.points_block_back = []
+        self.points_block_mining = []
 
         self._cal_grid_base()
         self._cal_grid_resources()
@@ -52,6 +57,8 @@ class City():
         self._cal_block_mining()
         self._cal_block_back()
         self._cal_block_base()
+
+        self._init_block_points()
 
     def _cal_grid_base(self):
         # placement_grid = self.map_data.placement_arr.T
@@ -153,7 +160,7 @@ class City():
                 point = Point2((x, y))
                 if self.grid_build[x][y] == City.grid_index_empty and self.grid_blocks[x][y] == City.block_index_null:
                     scan_points.append(point)
-                    self.grid_blocks[x][y] = City.block_index_near_base
+                    self.grid_blocks[x][y] = City.block_index_base
 
         next_scan_points = []
         while len(scan_points):
@@ -172,7 +179,7 @@ class City():
                     #if new_point[0] < bound_min[0] or new_point[0] > bound_max[0] or new_point[1] < bound_min[1] or new_point[1] > bound_max[1]:
                         #continue
                     
-                    self.grid_blocks[new_point[0]][new_point[1]] = City.block_index_near_base
+                    self.grid_blocks[new_point[0]][new_point[1]] = City.block_index_base
                     next_scan_points.append(new_point)
 
             scan_points.clear()
@@ -228,7 +235,7 @@ class City():
             for point in test_points:
                 for x in range(point[0] - 1, point[0] + 2):
                     for y in range(point[1] - 1, point[1] + 2):
-                        self.grid_blocks[x][y] = City.block_index_mining_area
+                        self.grid_blocks[x][y] = City.block_index_mining
                         self.grid_road[x][y] = 1
 
     def _cal_distance_to_edge(self):
@@ -285,7 +292,7 @@ class City():
         scan_points = self.choke_points.copy()
         next_scan_points: list[Point2] = []
 
-        grid_scaned = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
+        grid_scaned = numpy.zeros(shape=(self.region_width, self.region_height), dtype=numpy.int16)
         for point in scan_points:
             grid_scaned[point[0]][point[1]] = 1
 
@@ -306,6 +313,39 @@ class City():
             scan_points, next_scan_points = next_scan_points, scan_points
 
             distance = distance + 1
+
+    def _init_block_points(self):
+        scan_points = self.choke_points.copy()
+        next_scan_points = []
+        grid_mark = numpy.zeros((self.region_width, self.region_height), dtype=numpy.int16)
+
+        for point in scan_points:
+            grid_mark[point[0]][point[1]] = 1
+
+        while len(scan_points):
+            distance = self.grid_distance_to_choke[scan_points[0][0]][scan_points[0][1]]
+            for point in scan_points:
+                if self.grid_blocks[point[0]][point[1]] == City.block_index_back:
+                    self.points_block_back.append(point)
+                elif self.grid_blocks[point[0]][point[1]] == City.block_index_choke:
+                    self.points_block_choke.append(point)
+                elif self.grid_blocks[point[0]][point[1]] == City.block_index_base:
+                    self.points_block_base.append(point)                
+                elif self.grid_blocks[point[0]][point[1]] == City.block_index_mining:
+                    self.points_block_mining.append(point)
+
+                new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ]
+                for new_point in new_points:
+                    if (
+                        self.is_point_in_region_box(new_point) and
+                        grid_mark[new_point[0]][new_point[1]] == 0 and
+                        self.grid_build[new_point[0]][new_point[1]] != City.grid_index_null
+                    ):
+                        grid_mark[new_point[0]][new_point[1]] = 1
+                        next_scan_points.append(new_point)
+
+            scan_points.clear()
+            next_scan_points, scan_points = scan_points, next_scan_points
 
     def terrain_to_z_height(self, h):
         """Gets correct z from versions 4.9.0+"""
@@ -339,39 +379,29 @@ class City():
             for y in range(position_origin[1], position_origin[1] + size[1]):
                 self.grid_lock[x][y] = 0
 
-    async def get_placement_near_base(self, unit_type: UnitTypeId, max_to_choke_distance = 25, has_addon = False):
+    async def get_placement_in_base(self, unit_type: UnitTypeId, has_addon = False):
         unit_data = self.bot.game_data.units[unit_type.value]
         creation_ability = unit_data.creation_ability.id
         radius = unit_data.footprint_radius
 
-        grid_scaned = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
         building_size: Point2 = Point2((int(radius * 2),  int(radius * 2)))
         building_size_half: Point2 = Point2((radius,  radius))
-
-        base_center = self.bot.start_location.rounded.offset(-self.region_origin)
-        scan_points = [base_center]
-        next_scan_points: list[Point2] = []
-        for point in scan_points:
-            grid_scaned[point[0]][point[1]] = 1
-
+        
         def check_grid(point, building_size):
             for x in range(point[0], point[0] + building_size[0]):
                 for y in range(point[1], point[1] + building_size[1]):
-                    if not self.is_point_buildable(Point2((x, y))):
+                    if not self.is_point_buildable(Point2((x, y))) or self.grid_blocks[x][y] != City.block_index_base:
                         return False
 
             return True
 
-        while len(scan_points) > 0:
+        scan_points = self.points_block_base.copy()
+        while len(scan_points):
             possible_points = []
+            while len(scan_points) and len(possible_points) < 10:
+                point = scan_points.pop(0)
 
-            for point in scan_points:
-                
-                distance = self.grid_distance_to_choke[point[0]][point[1]]
-                can_build = False
-                if distance <= max_to_choke_distance:
-                    can_build = check_grid(point, building_size)
-                
+                can_build = check_grid(point, building_size)
                 if can_build and has_addon:
                     add_position = Point2((point[0] + building_size[0], point[1]))
                     can_build = check_grid(add_position, Point2((2, 2)))
@@ -379,66 +409,45 @@ class City():
                 if can_build:
                     possible_points.append(point.offset(self.region_origin).offset(building_size_half))
 
-                new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
-                #todo 后面如果保证了连通就可以再这里加上检查是否可以通过，才扩展
-                new_points = [ new_point for new_point in new_points if self.is_point_in_region_box(new_point) and 
-                                                                        grid_scaned[new_point[0]][new_point[1]] == 0]
-                for new_point in new_points:
-                    grid_scaned[new_point[0]][new_point[1]] = 1                                            
-                next_scan_points = next_scan_points + new_points    
-
-            if len(possible_points) > 0:
+            if len(possible_points):
                 res = await self.bot.client._query_building_placement_fast(creation_ability, possible_points)
                 possible = [p for r, p in zip(res, possible_points) if r]
 
                 if has_addon:
                     # Filter remaining positions if addon can be placed
-                    res = await self.bot.client._query_building_placement_fast(
-                        AbilityId.TERRANBUILD_SUPPLYDEPOT,
-                    [p.offset((2.5, -0.5)) for p in possible])
+                    res = await self.bot.client._query_building_placement_fast(AbilityId.TERRANBUILD_SUPPLYDEPOT, [p.offset((2.5, -0.5)) for p in possible])
                     possible = [p for r, p in zip(res, possible) if r]
 
                 if possible:
                     position = possible[0]
                     return position
-
-            scan_points.clear()
-            scan_points, next_scan_points = next_scan_points, scan_points
-            distance = distance + 1
 
         assert(False)
         return None                
 
-    async def get_placement_near_choke(self, unit_type: UnitTypeId, start_distance = 0, has_addon = False):
+    async def get_placement_in_choke(self, unit_type: UnitTypeId, has_addon = False):
 
         unit_data = self.bot.game_data.units[unit_type.value]
         creation_ability = unit_data.creation_ability.id
         radius = unit_data.footprint_radius
 
-        grid_scaned = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
-
         building_size: Point2 = Point2((int(radius * 2),  int(radius * 2)))
         building_size_half: Point2 = Point2((radius,  radius))
         
-        scan_points = self.choke_points.copy()
-        next_scan_points: list[Point2] = []
-        for point in scan_points:
-            grid_scaned[point[0]][point[1]] = 1
-
         def check_grid(point, building_size):
             for x in range(point[0], point[0] + building_size[0]):
                 for y in range(point[1], point[1] + building_size[1]):
-                    if not self.is_point_buildable(Point2((x, y))):
+                    if not self.is_point_buildable(Point2((x, y))) or self.grid_blocks[x][y] != City.block_index_choke:
                         return False
 
             return True
 
-        while len(scan_points) > 0:
-            distance = self.grid_distance_to_choke[scan_points[0][0]][scan_points[0][1]]
+        scan_points = self.points_block_choke.copy()
+        while len(scan_points):
             possible_points = []
+            while len(scan_points) and len(possible_points) < 10:
+                point = scan_points.pop(0)
 
-            for point in scan_points:
-                
                 can_build = check_grid(point, building_size)
                 if can_build and has_addon:
                     add_position = Point2((point[0] + building_size[0], point[1]))
@@ -447,81 +456,44 @@ class City():
                 if can_build:
                     possible_points.append(point.offset(self.region_origin).offset(building_size_half))
 
-                new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
-                #todo 后面如果保证了连通就可以再这里加上检查是否可以通过，才扩展
-                new_points = [ new_point for new_point in new_points if self.is_point_in_region_box(new_point) and 
-                                                                        grid_scaned[new_point[0]][new_point[1]] == 0]
-                for new_point in new_points:
-                    grid_scaned[new_point[0]][new_point[1]] = 1                                            
-                next_scan_points = next_scan_points + new_points    
-
-            if len(possible_points) > 0 and distance >= start_distance:
+            if len(possible_points):
                 res = await self.bot.client._query_building_placement_fast(creation_ability, possible_points)
                 possible = [p for r, p in zip(res, possible_points) if r]
 
                 if has_addon:
                     # Filter remaining positions if addon can be placed
-                    res = await self.bot.client._query_building_placement_fast(
-                        AbilityId.TERRANBUILD_SUPPLYDEPOT,
-                    [p.offset((2.5, -0.5)) for p in possible])
+                    res = await self.bot.client._query_building_placement_fast(AbilityId.TERRANBUILD_SUPPLYDEPOT, [p.offset((2.5, -0.5)) for p in possible])
                     possible = [p for r, p in zip(res, possible) if r]
 
                 if possible:
                     position = possible[0]
                     return position
-
-            scan_points.clear()
-            scan_points, next_scan_points = next_scan_points, scan_points
-            distance = distance + 1
 
         assert(False)
         return None
 
-    async def get_placement_far_choke(self, unit_type: UnitTypeId, has_addon = False):
+    async def get_placement_in_back(self, unit_type: UnitTypeId, has_addon = False):
         unit_data = self.bot.game_data.units[unit_type.value]
         creation_ability = unit_data.creation_ability.id
         radius = unit_data.footprint_radius
 
-        grid_scaned = numpy.zeros(shape=(self.region_width, self.region_height)).astype(int)
-
         building_size: Point2 = Point2((int(radius * 2),  int(radius * 2)))
         building_size_half: Point2 = Point2((radius,  radius))
         
-        shape = self.grid_build.shape
-        max_distance = 0 
-        scan_points: list[Point2] = []
-        next_scan_points: list[Point2] = []
-
-        for x in range(0, shape[0]):
-            for y in range(0, shape[1]):
-                if self.grid_build[x][y] != City.grid_index_empty:
-                    continue
-
-                distance = self.grid_distance_to_choke[x][y]
-                if distance > max_distance:
-                    max_distance = distance
-                    scan_points.clear()
-                    scan_points.append(Point2((x, y)))
-                elif distance == max_distance:
-                    scan_points.append(Point2((x, y)))
-
-        for point in scan_points:
-            grid_scaned[point[0]][point[1]] = 1
-
         def check_grid(point, building_size):
             for x in range(point[0], point[0] + building_size[0]):
                 for y in range(point[1], point[1] + building_size[1]):
-                    if not self.is_point_buildable(Point2((x, y))):
+                    if not self.is_point_buildable(Point2((x, y))) or self.grid_blocks[x][y] != City.block_index_back:
                         return False
 
             return True
 
-        while len(scan_points) > 0:
-            distance = self.grid_distance_to_choke[scan_points[0][0]][scan_points[0][1]]
+        scan_points = self.points_block_back.copy()
+        while len(scan_points):
             possible_points = []
+            while len(scan_points) and len(possible_points) < 10:
+                point = scan_points.pop(0)
 
-            for point in scan_points:
-                
                 can_build = check_grid(point, building_size)
                 if can_build and has_addon:
                     add_position = Point2((point[0] + building_size[0], point[1]))
@@ -530,32 +502,18 @@ class City():
                 if can_build:
                     possible_points.append(point.offset(self.region_origin).offset(building_size_half))
 
-                new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
-                #todo 后面如果保证了连通就可以再这里加上检查是否可以通过，才扩展
-                new_points = [ new_point for new_point in new_points if self.is_point_in_region_box(new_point) and 
-                                                                        grid_scaned[new_point[0]][new_point[1]] == 0]
-                for new_point in new_points:
-                    grid_scaned[new_point[0]][new_point[1]] = 1                                            
-                next_scan_points = next_scan_points + new_points    
-
-            if len(possible_points) > 0:
+            if len(possible_points):
                 res = await self.bot.client._query_building_placement_fast(creation_ability, possible_points)
                 possible = [p for r, p in zip(res, possible_points) if r]
 
                 if has_addon:
                     # Filter remaining positions if addon can be placed
-                    res = await self.bot.client._query_building_placement_fast(
-                        AbilityId.TERRANBUILD_SUPPLYDEPOT,
-                    [p.offset((2.5, -0.5)) for p in possible])
+                    res = await self.bot.client._query_building_placement_fast(AbilityId.TERRANBUILD_SUPPLYDEPOT, [p.offset((2.5, -0.5)) for p in possible])
                     possible = [p for r, p in zip(res, possible) if r]
 
                 if possible:
                     position = possible[0]
                     return position
-
-            scan_points.clear()
-            scan_points, next_scan_points = next_scan_points, scan_points
-            distance = distance + 1
 
         assert(False)
         return None

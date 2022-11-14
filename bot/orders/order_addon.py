@@ -53,7 +53,6 @@ class OrderAddon(OrderBuild):
                 if builder.build_progress == 1 and len(builder.orders) == 0:
                     if builder.train(self.target_type):
                         self.builder_tag = builder.tag
-                        print("produce addon ", self.target_type)
                         return True
     
     def on_unit_type_changed(self, unit: Unit, previous_type: UnitTypeId):

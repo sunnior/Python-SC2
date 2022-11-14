@@ -21,7 +21,7 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
         self.reserve_positions: list[Point2] = []
         self.strategy_mining: StrategyTerranMining = strategy_mining
         self.strategy_army: StrategyTerranArmy = strategy_army
-        self.is_choke_open = 2
+        self.is_choke_open = True
 
     async def get_build_position(self, unit_type: UnitTypeId) -> Optional[Point2]:
         is_lock_position = True
@@ -52,26 +52,25 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
     async def get_supplydepot_position(self, unit_type: UnitTypeId):
         main_city: City = self.bot.cities[0]
         if self.bot.supply_used < 30:
-            position = await main_city.get_placement_near_choke(unit_type)
+            position = await main_city.get_placement_in_choke(unit_type)
         else:
-            position = await main_city.get_placement_far_choke(unit_type)
+            position = await main_city.get_placement_in_back(unit_type)
         return position
         
     async def get_army_building_position(self, unit_type: UnitTypeId):
         main_city: City = self.bot.cities[0]
         if self.is_choke_open:
-            return await main_city.get_placement_near_choke(unit_type, 0, True)
+            #todo 
+            self.is_choke_open = False
+            return await main_city.get_placement_in_choke(unit_type, True)
         else:
-            return await main_city.get_placement_near_base(unit_type, 25, True)
+            return await main_city.get_placement_in_base(unit_type, True)
 
     def on_build_complete(self, unit: Unit, worker_tag: int):
         is_lock_position = True
         if unit.type_id == UnitTypeId.SUPPLYDEPOT:
             unit(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
         elif unit.type_id in [ UnitTypeId.BARRACKS, UnitTypeId.FACTORY, UnitTypeId.STARPORT ]:
-            if self.is_choke_open:
-                #todo 
-                self.is_choke_open = self.is_choke_open - 1
             self.strategy_army.on_build_complete(unit)
         elif unit.type_id == UnitTypeId.COMMANDCENTER:
             self.strategy_mining.create_squad_mining(unit)
