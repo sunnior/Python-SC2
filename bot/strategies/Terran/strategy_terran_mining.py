@@ -52,7 +52,7 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
                 squad_under_saturate = squad
                 break
 
-        if squad_under_saturate is not None and squad_over_saturate is not None:
+        if squad_under_saturate and squad_over_saturate:
             worker_tag = squad_over_saturate.remove_worker()
             squad_under_saturate.add_worker(self.bot.units.find_by_tag(worker_tag))
 
@@ -80,10 +80,26 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
         self.add_squad(squad_mining)
 
     def add_worker(self, worker_tag: int):
-        self.squads_mining[0].add_worker(self.bot.workers.find_by_tag(worker_tag))
+        worker = self.bot.workers.find_by_tag(worker_tag)
+        squads = self.squads_mining.copy()
+        squads.sort(key=lambda squad: squad.position.distance_to(worker.position))
+        for squad in squads:
+            if squad.get_saturation_left() > 0:
+                squad.add_worker(worker)
+                worker = None
+                break
+        
+        if worker:
+            squads[0].add_worker()
 
     def remove_worker(self, near: Point2):
-        return self.bot.workers.find_by_tag(self.squads_mining[0].remove_worker())
+        squads = self.squads_mining.copy()
+        squads.sort(key=lambda squad: squad.position.distance_to(near))
+        worker = None
+        for squad in squads:
+            worker_tag = squad.remove_worker()
+            if worker_tag:
+                return self.bot.workers.find_by_tag(worker_tag)
 
     def get_vespene_geyser(self) -> Optional[int]:
         for squad in self.squads_mining:

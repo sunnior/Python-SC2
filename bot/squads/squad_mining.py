@@ -13,6 +13,7 @@ class SquadMining(Squad):
         self.workers_mineral: list[int] = []
         self.workers_vespene: list[tuple[int, list[int]]] = []
         self.townhall = townhall.tag
+        self.position = townhall.position
 
         expansion_locations_dict = bot.expansion_locations_dict
         resource_list = expansion_locations_dict[townhall.position]
