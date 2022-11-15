@@ -12,19 +12,19 @@ class ProducerManager():
         self.orders : list[Order] = []
         self.bot = bot
 
-    def submit(self, order : Order):
+    def add_order(self, order : Order):
         self.orders.append(order)
-        order.on_submit(self.bot)
+        order.on_added(self.bot)
 
-    def unsubmit(self, order: Order):
+    def remove_order(self, order: Order):
         self.orders.remove(order)
-        order.on_unsubmit()
+        order.on_removed()
         
     async def step(self):
         for order in self.orders:
             await order.step()
             if order.is_done:
-                order.on_unsubmit()
+                order.on_removed()
 
         self.orders = [order for order in self.orders if not order.is_done ]
         orders_request = [ order for order in self.orders if order.has_requests ]
@@ -46,10 +46,6 @@ class ProducerManager():
             minerals_left = max(0, minerals_left - order.cost_minerals)
             vespene_left = max(0, vespene_left - order.cost_vespene)
             supply_left = max(0, supply_left - order.cost_supply)
-
-    def post_step(self):
-        for order in self.orders:
-            order.post_step()
 
     def on_unit_created(self, unit : Unit):
         # 寻找这个单位是哪一个unit创建的

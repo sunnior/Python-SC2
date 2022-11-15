@@ -12,7 +12,7 @@ class StrategyZergMining(Strategy):
         super().start()
 
         self.order = OrderZergUnit(self.bot, UnitTypeId.DRONE, 999)
-        self.bot.producer.submit(self.order)
+        self.bot.producer.add_order(self.order)
 
     def step(self):
         pass

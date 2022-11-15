@@ -1,3 +1,4 @@
+from typing import Callable
 from bot.bot_ai_base import BotAIBase
 from bot.orders.order_build import OrderBuild
 from sc2.bot_ai import BotAI
@@ -7,11 +8,12 @@ from bot.orders.interface_build_helper import InterfaceBuildHelper
 
 class OrderAddon(OrderBuild):
  
-    def __init__(self, unit_type: UnitTypeId, build_helper: InterfaceBuildHelper):
+    def __init__(self, unit_type: UnitTypeId, build_helper: InterfaceBuildHelper, callback: Callable = None):
         super().__init__()
 
         self.target_type = unit_type
         self.builder_helper = build_helper
+        self.callback = callback
 
         self.from_type = None
         self.out_build = None
@@ -29,8 +31,8 @@ class OrderAddon(OrderBuild):
 
         self.builder_tag = None
 
-    def on_submit(self, bot: BotAI):
-        super().on_submit(bot)
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
 
         self.builder_tag = None
         unit_data = self.bot.game_data.units[self.target_type.value]
@@ -66,12 +68,11 @@ class OrderAddon(OrderBuild):
     def on_building_construction_complete(self, unit: Unit):
         if unit.type_id == self.target_type:
             self.is_done = True
-            self.out_build = unit
+            if self.callback:
+                self.callback(unit)
+
             self.builder_helper.on_addon_complete(unit)
             return True
-
-    def post_step(self):
-        self.out_build = None
 
     def debug_string(self) -> str:
         return "$AddOn-" + str(self.target_type).replace("UnitTypeId.", "") + self.debug_get_progress_char()

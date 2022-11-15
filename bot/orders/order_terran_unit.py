@@ -1,6 +1,6 @@
 from distutils.command.build import build
 
-from typing import Optional
+from typing import Callable, Optional
 from sc2.bot_ai import BotAI
 from bot.orders.order import Order
 from bot.orders.order_unit import OrderUnit
@@ -13,12 +13,12 @@ from sc2.dicts.unit_trained_from import UNIT_TRAINED_FROM
 from sc2.dicts.unit_train_build_abilities import TRAIN_INFO
 
 class OrderTerranUnit(OrderUnit):
-    def __init__(self, unit_type : UnitTypeId, count : int) -> None:
-        super().__init__(unit_type, count)
+    def __init__(self, unit_type : UnitTypeId, count : int, callback: Callable[[Unit], None] = None) -> None:
+        super().__init__(unit_type, count, callback)
         self.builder_types = list(UNIT_TRAINED_FROM[unit_type])
 
-    def on_submit(self, bot: BotAI):
-        super().on_submit(bot)
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
 
         unit_data = self.bot.game_data.units[self.target_type.value]
         cost = self.bot.game_data.calculate_ability_cost(unit_data.creation_ability)
@@ -27,7 +27,7 @@ class OrderTerranUnit(OrderUnit):
         self.cost_minerals = cost.minerals
         self.cost_supply = self.bot.calculate_supply_cost(self.target_type)
 
-    def on_unsubmit(self):
+    def on_removed(self):
         if self.count_wip:
             #todo cancel build progress
             pass

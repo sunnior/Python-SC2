@@ -11,15 +11,13 @@ from sc2.unit import Unit
 class StrategyTerranMining(Strategy, InterfaceBuildHelper):
     def __init__(self) -> None:
         super().__init__()
-        
+        self.is_order_worker = None
+        self.squads_mining: list[SquadMining] = []
+        self.new_workers: list[Unit] = []
+
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
-        self.squads_mining: list[SquadMining] = []
         
-        self.act_order_worker = ActOrderTerranUnit(UnitTypeId.SCV, 999)
-        self.is_order_worker = True
-        self.add_acts([self.act_order_worker])
-
     def start(self):
         super().start()
 
@@ -28,16 +26,14 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
 
         self.squads_mining[0].init_workers(self.bot.workers)
 
+        self.act_order_worker = ActOrderTerranUnit(UnitTypeId.SCV, 99, self.on_order_unit_created)
+        self.add_acts([self.act_order_worker])
+
     def step_new_worker(self):
-        for worker in self.act_order_worker.out_units:
-            is_assigned = False
-            for squad in self.squads_mining:
-                if squad.get_saturation_left() > 0:
-                    squad.add_worker(worker)
-                    is_assigned = True
-                    break
-            if not is_assigned:
-                self.squads_mining[0].add_worker(worker)
+        for worker in self.new_workers:
+            self.add_worker(worker)
+
+        self.new_workers.clear()
 
     def step_balance_worker(self):
         squad_over_saturate = None
@@ -65,22 +61,18 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
             saturation_left = saturation_left + squad.get_saturation_left()
 
         #留几个作为builder
-        if saturation_left < -2:
-            if self.is_order_worker:
-                self.remove_acts(self.act_order_worker)
-                self.is_order_worker = False
-        else:
-            if not self.is_order_worker:
-                self.add_acts([self.act_order_worker])
-                self.is_order_worker = True
+        saturation_left = max(0, saturation_left + 2)
+        self.act_order_worker.update_count(saturation_left)
+
+        if saturation_left > 0 and not self.act_order_worker.is_added:
+            self.add_acts([self.act_order_worker])
 
     def create_squad_mining(self, townhall: Unit):
         squad_mining = SquadMining(self.bot, townhall)
         self.squads_mining.append(squad_mining)
         self.add_squad(squad_mining)
 
-    def add_worker(self, worker_tag: int):
-        worker = self.bot.workers.find_by_tag(worker_tag)
+    def add_worker(self, worker: Unit):
         squads = self.squads_mining.copy()
         squads.sort(key=lambda squad: squad.position.distance_to(worker.position))
         for squad in squads:
@@ -90,7 +82,11 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
                 break
         
         if worker:
-            squads[0].add_worker()
+            squads[0].add_worker(worker)
+
+    def add_worker_tag(self, worker_tag: int):
+        worker = self.bot.workers.find_by_tag(worker_tag)
+        self.add_worker(worker)
 
     def remove_worker(self, near: Point2):
         squads = self.squads_mining.copy()
@@ -106,7 +102,10 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
             vespene_tag = squad.get_free_vespene()
             if vespene_tag is not None:
                 return vespene_tag
-        return None        
+        return None
+
+    def on_order_unit_created(self, unit: Unit):
+        self.new_workers.append(unit)
 
     def debug_string(self) -> str:
         return "TerranMining"

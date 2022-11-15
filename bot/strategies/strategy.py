@@ -9,8 +9,6 @@ class Strategy():
     def __init__(self) -> None:
         self.substrategies : list[Strategy] = []
         self.squads : list[Squad] = []
-        self.acts_pending: list[ActBase] = []
-        self.acts_ending: list[ActBase] = []
         self.acts: list[ActBase] = []
 
     def post_init(self, bot : BotAIBase):
@@ -22,43 +20,30 @@ class Strategy():
 
     def add_acts(self, acts: list[ActBase]):
         for act in acts:
-            if act in self.acts_pending:
+            if act in self.acts:
                 continue
-            assert(not act.is_start)
 
-            self.acts_pending.append(act)
-            act.post_init(self.bot)
+            assert(not act.is_added)
+            self.acts.append(act)
+            act.on_added(self.bot)
 
     def remove_acts(self, act: ActBase):
-        if act in self.acts_pending:
-            self.acts_pending.remove(act)
-        elif act in self.acts:
-            self.acts.remove(act)
-            self.acts_ending.append(act)
+        assert(act.is_added and act in self.acts)
+        self.acts.remove(act)
+        act.on_removed()
 
     async def step(self):
         pass
 
     async def _step(self):
-        for act in self.acts_ending:
-            await act.stop()
-        
-        self.acts_ending.clear()
 
-        self.acts_tmp = self.acts.copy()
-        self.acts.clear()
+        acts_tmp, self.acts = self.acts, []
 
-        for act in self.acts_tmp:
+        for act in acts_tmp:
             if await act.execute():
-                self.acts_ending.append(act)
+                act.on_removed()
             else:
                 self.acts.append(act)
-
-        for act in self.acts_pending:
-            await act.start()
-            self.acts.append(act)
-
-        self.acts_pending.clear()
 
         await self.step()
 

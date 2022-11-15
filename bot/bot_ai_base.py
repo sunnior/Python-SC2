@@ -32,8 +32,6 @@ class BotAIBase(BotAI):
 
         await self.strategy._step()
 
-        self.producer.post_step()
-
         if len(self.state.action_errors):
             print("***********************************error*******************************\n", self.state.action_errors)
 

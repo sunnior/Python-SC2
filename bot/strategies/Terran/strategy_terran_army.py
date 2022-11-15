@@ -23,6 +23,7 @@ class StrategyTerranArmy(Strategy):
         self.rally_point_small = path[min(len(path) - 1, 40)]
         path = self.bot.map_data.pathfind(self.bot.start_location, self.bot.enemy_start_locations[0], large=True)
         self.rally_point_large = path[min(len(path), 36)]
+        self.new_units: list[Unit] = []
 
         self.setup_orders()
 
@@ -44,10 +45,10 @@ class StrategyTerranArmy(Strategy):
 
     def setup_orders(self):
         
-        self.act_order_marine = ActOrderTerranUnit(UnitTypeId.MARINE, 999)
-        self.act_order_marauder = ActOrderTerranUnit(UnitTypeId.MARAUDER, 999)
-        self.act_order_tank = ActOrderTerranUnit(UnitTypeId.SIEGETANK, 999)
-        self.act_order_medivac = ActOrderTerranUnit(UnitTypeId.MEDIVAC, 999)
+        self.act_order_marine = ActOrderTerranUnit(UnitTypeId.MARINE, 999, self.on_order_unit_created)
+        self.act_order_marauder = ActOrderTerranUnit(UnitTypeId.MARAUDER, 999, self.on_order_unit_created)
+        self.act_order_tank = ActOrderTerranUnit(UnitTypeId.SIEGETANK, 999, self.on_order_unit_created)
+        self.act_order_medivac = ActOrderTerranUnit(UnitTypeId.MEDIVAC, 999, self.on_order_unit_created)
 
         acts: list[ActBase] = [
             ActSequence(
@@ -83,9 +84,9 @@ class StrategyTerranArmy(Strategy):
             unit(AbilityId.RALLY_BUILDING, self.rally_point_large)
 
     def step_squad(self):
-        for act_order in [ self.act_order_marine, self.act_order_marauder, self.act_order_tank, self.act_order_medivac ]:
-            for unit in act_order.out_units:
-                self.squad_army.add_unit(unit)
+        for unit in self.new_units:
+            self.squad_army.add_unit(unit)
+        self.new_units.clear()
 
         self.adjust_army_order()
 
@@ -105,3 +106,6 @@ class StrategyTerranArmy(Strategy):
                 order.set_priority(Order.prio_high)
             else:
                 order.set_priority(Order.prio_medium)
+
+    def on_order_unit_created(self, unit: Unit):
+        self.new_units.append(unit)

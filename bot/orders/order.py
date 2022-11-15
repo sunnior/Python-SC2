@@ -21,10 +21,10 @@ class Order():
 
         self.priority = Order.prio_low
 
-    def on_submit(self, bot: BotAI):
+    def on_added(self, bot: BotAI):
         self.bot = bot
 
-    def on_unsubmit(self):
+    def on_removed(self):
         pass
 
     @property
@@ -40,9 +40,6 @@ class Order():
 
     async def produce(self) -> bool:
         return False
-
-    def post_step(self):
-        pass
 
     def debug_string(self) -> str:
         return "order"

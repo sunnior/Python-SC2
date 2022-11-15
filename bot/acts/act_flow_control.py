@@ -13,7 +13,6 @@ class ActAnd(ActBase):
 
         self.act_list_init: list[ActBase] = []
         self.act_list: list[ActBase] = []
-        self.act_ending: list[ActBase] = []
         
         for arg in argv:
             assert(isinstance(arg, ActBase))   
@@ -21,39 +20,28 @@ class ActAnd(ActBase):
 
         assert(len(self.act_list_init) > 0)
 
-    def post_init(self, bot: BotAI):
-        super().post_init(bot)
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
 
-        for act in self.act_list_init:
-            act.post_init(bot)
-
-    async def start(self):
-        await super().start()
         self.act_list = self.act_list_init.copy()
+
         for act in self.act_list:
-            await act.start()
+            act.on_added(bot)
 
     async def execute(self) -> bool:
-        for act in self.act_ending:
-            await act.stop()
-        self.act_ending.clear()
-        if len(self.act_list) == 0:
-            return True
-
-        act_list_tmp = self.act_list.copy()
-        self.act_list.clear()
+        self.act_list, act_list_tmp = [], self.act_list
 
         for act in act_list_tmp:
             if await act.execute():
-                self.act_ending.append(act)
+                act.on_removed()
             else:
                 self.act_list.append(act)
 
-        return False
+        return not len(self.act_list)
 
     def debug_string(self) -> str:
         use_list = self.act_list_init
-        if self.is_start:
+        if self.is_added:
             use_list = self.act_list
         debug_info = "And[["
         for act in use_list:
@@ -77,39 +65,31 @@ class ActSequence(ActComposite):
         assert(len(self.act_list_init) > 0)
 
 
-    def post_init(self, bot: BotAI):
-        super().post_init(bot)
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
 
-        for act in self.act_list_init:
-            act.post_init(bot)
-
-    async def start(self):
-        await super().start()
         self.act_list = self.act_list_init.copy()
-        self.act_ending = None
-        await self.act_list[0].start()
+        self.act_list[0].on_added(bot)
 
     async def execute(self) -> bool:
-        if self.act_ending:
-            await self.act_ending.stop()
-            self.act_ending = None
-            if len(self.act_list) > 0:
-                await self.act_list[0].start()
-                return False
+        if await self.act_list[0].execute():
+            self.act_list[0].on_removed()
+            self.act_list.pop(0)
+            if len(self.act_list):
+                self.act_list[0].on_added(self.bot)
             else:
                 return True
-
-        if await self.act_list[0].execute():
-            self.act_ending = self.act_list.pop(0)
 
         return False
 
     def debug_string(self) -> str:
+        use_list = self.act_list_init
+        if self.is_added:
+            use_list = self.act_list
+
         debug_info = "Seq[["
-        for act in self.act_list[:4]:
+        for act in use_list:
             debug_info = debug_info + " " + act.debug_string()
-        if len(self.act_list) > 4:
-            debug_info = debug_info + " ..."
 
         debug_info = debug_info + "]]"
         return debug_info
@@ -122,34 +102,20 @@ class ActLoop(ActComposite):
         self.count = count
 
 
-    def post_init(self, bot: BotAI):
-        super().post_init(bot)
-        self.act.post_init(bot)
-
-    async def start(self):
-        await super().start()
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
         self.it_count = 0
-        self.it_end = False
-        self.it_start = False
-        await self.act.start()
+        
+        self.act.on_added(bot)
 
     async def execute(self) -> bool:
-        if self.it_end:
-            self.it_end = False
-            await self.act.stop()
+        if await self.act.execute():
+            self.act.on_removed()
             self.it_count = self.it_count + 1
-            if self.it_count >= self.count:
+            if self.it_count == self.count:
                 return True
-            else:
-                self.it_start = True
-                return False
-        elif self.it_start:
-            self.it_start = False
-            await self.act.start()
-        else:
-            if await self.act.execute():
-                self.it_end = True
-            return False
+            
+            self.act.on_added(self.bot)
 
     def debug_string(self) -> str:
         debug_info = "Loop[[" + self.act.debug_string() + "]]"

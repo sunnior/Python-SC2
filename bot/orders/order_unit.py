@@ -1,7 +1,5 @@
+from typing import Callable
 from bot.orders.order import Order
-from numpy import true_divide
-from sc2.constants import IS_CARRYING_VESPENE
-from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -11,17 +9,17 @@ from sc2.unit import Unit
 """
 
 class OrderUnit(Order):
-    def __init__(self, unit_type : UnitTypeId, count : int) -> None:
+    def __init__(self, unit_type : UnitTypeId, count : int, callback: Callable[[Unit], None] = None) -> None:
         super().__init__()
 
         self.target_type = unit_type
         self.target_positions : list[Point2] = []
 
-        # 这一帧创建的单位，下一帧就清空了
-        self.out_units : list[Unit] = []
         self.count_pending = count
         self.count_wip = 0
         self.priority = Order.prio_high
+
+        self.callback = callback
 
     @property
     def has_requests(self) -> bool:
@@ -30,6 +28,9 @@ class OrderUnit(Order):
     @property
     def is_producing(self) -> bool:
         return self.count_wip > 0
+
+    def update_count(self, count: int):
+        self.count_pending = count
 
     async def produce(self) -> bool:
         if self.count_pending == 0:
@@ -54,7 +55,9 @@ class OrderUnit(Order):
         if unit.type_id != self.target_type or not self.is_my_unit(unit):
             return False
 
-        self.out_units.append(unit)
+        if self.callback:
+            self.callback(unit)
+
         #todo 实现取消
         #assert(self.count_wip > 0)
         self.count_wip = self.count_wip - 1
@@ -62,6 +65,3 @@ class OrderUnit(Order):
             self.is_done = True
 
         return True
-
-    def post_step(self):
-        self.out_units.clear()

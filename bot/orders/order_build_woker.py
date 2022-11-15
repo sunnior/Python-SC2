@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Callable, Union
 from bot.orders.order_build import OrderBuild
 from bot.orders.interface_build_helper import InterfaceBuildHelper
 from bot.squads.squad_mining import SquadMining
@@ -9,15 +9,15 @@ from sc2.position import Point2
 from sc2.unit import Unit
 
 class OrderBuildWorker(OrderBuild):
-    def __init__(self, build_type : UnitTypeId, build_helper: InterfaceBuildHelper) -> None:
+    def __init__(self, build_type : UnitTypeId, build_helper: InterfaceBuildHelper, callback: Callable[[Unit], None] = None) -> None:
         super().__init__()
         self.build_type = build_type
         self.worker_tag = None
         self.build_helper = build_helper
-        self.out_build: Unit = None
+        self.callback = callback
 
-    def on_submit(self, bot: BotAI):
-        super().on_submit(bot)
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
 
         self.worker_tag = None
         unit_data = self.bot.game_data.units[self.build_type.value]
@@ -67,8 +67,9 @@ class OrderBuildWorker(OrderBuild):
     def on_building_construction_complete(self, unit: Unit):
         if self.is_done or unit.type_id != self.build_type or self.worker_tag is None:
             return False
+        if self.callback:
+            self.callback(unit)
 
-        self.out_build = unit
         self.is_done = True
         self.build_helper.on_build_complete(unit, self.worker_tag)
 
@@ -77,5 +78,3 @@ class OrderBuildWorker(OrderBuild):
     def debug_string(self) -> str:
         return "$Build-" + str(self.build_type).replace("UnitTypeId.", "") + self.debug_get_progress_char()
 
-    def post_step(self):
-        self.out_build = None

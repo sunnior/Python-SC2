@@ -1,3 +1,4 @@
+from typing import Callable
 from numpy import true_divide
 from bot.acts.act_base import ActBase
 from bot.orders.interface_build_helper import InterfaceBuildHelper
@@ -8,6 +9,7 @@ from bot.orders.order_build import OrderBuild
 from bot.orders.order_build_woker import OrderBuildWorker
 from bot.orders.order_terran_unit import OrderTerranUnit
 from bot.orders.order_upgrade import OrderUpgrade
+from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
@@ -22,19 +24,17 @@ class ActOrder(ActBase):
             self.order.priority = priority
 
 class ActOrderBuild(ActOrder):
-    def __init__(self, build_type: UnitTypeId, build_helper: InterfaceBuildHelper):
+    def __init__(self, build_type: UnitTypeId, build_helper: InterfaceBuildHelper, callback: Callable[[Unit], None] = None):
         super().__init__()
         self.build_type = build_type
         self.order: Order = None
         self.build_helper = build_helper
+        self.callback = callback
 
-    async def create_order(self):
-        self.order = OrderBuildWorker(self.build_type, self.build_helper)
-        self.bot.producer.submit(self.order)
-
-    async def start(self):
-        await super().start()
-        await self.create_order()
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
+        self.order = OrderBuildWorker(self.build_type, self.build_helper, self.callback)
+        self.bot.producer.add_order(self.order)
 
     async def execute(self) -> bool:
         if self.order.is_done:
@@ -49,27 +49,26 @@ class ActOrderBuild(ActOrder):
             return "$build-" + str(self.build_type).replace("UnitTypeId.", "")
 
 class ActOrderTerranUnit(ActOrder):
-    def __init__(self, unit_type: UnitTypeId, count: int):
+    def __init__(self, unit_type: UnitTypeId, count: int, callback: Callable[[Unit], None] = None):
         super().__init__()
 
         self.unit_type = unit_type
         self.count = count
         self.order: OrderTerranUnit = None
-        self.out_units: list[Unit] = []
+        self.callback = callback
 
-    async def start(self):
-        await super().start()
-        self.order = OrderTerranUnit(self.unit_type, self.count)
-        self.bot.producer.submit(self.order)
+    def update_count(self, count: int):
+        self.count = count
+        if self.order:
+            self.order.update_count(count)
 
-    async def stop(self):
-        await super().stop()     
-        if not self.order.is_done:
-            self.bot.producer.unsubmit(self.order)
-            self.order = None
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
+
+        self.order = OrderTerranUnit(self.unit_type, self.count, self.callback)
+        self.bot.producer.add_order(self.order)
             
     async def execute(self) -> bool:
-        self.out_units = self.order.out_units
         if self.order.is_done:
             return True
         else:
@@ -82,16 +81,18 @@ class ActOrderTerranUnit(ActOrder):
             return "$Unit-" + str(self.unit_type).replace("UnitTypeId.", "")             
         
 class ActOrderBuildAddon(ActOrder):
-    def __init__(self, unit_type: UnitTypeId, build_helper: InterfaceBuildHelper):
+    def __init__(self, unit_type: UnitTypeId, build_helper: InterfaceBuildHelper, callback: Callable[[Unit], None] = None):
         super().__init__()
         self.order = None
         self.unit_type = unit_type
         self.build_helper = build_helper
+        self.callback = callback
 
-    async def start(self):
-        await super().start()
-        self.order = OrderAddon(self.unit_type, self.build_helper)
-        self.bot.producer.submit(self.order)
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
+
+        self.order = OrderAddon(self.unit_type, self.build_helper, self.callback)
+        self.bot.producer.add_order(self.order)
 
     async def execute(self) -> bool:
         return self.order.is_done    
@@ -108,10 +109,10 @@ class ActOrderUpgrade(ActOrder):
         self.upgrade_id = upgrade_id
         self.order = None
 
-    async def start(self):
-        await super().start()
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
         self.order = OrderUpgrade(self.upgrade_id)
-        self.bot.producer.submit(self.order)
+        self.bot.producer.add_order(self.order)
 
     async def execute(self) -> bool:
         return self.order.is_done    

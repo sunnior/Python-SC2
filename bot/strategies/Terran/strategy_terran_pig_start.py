@@ -87,7 +87,7 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
             main_city.unlock_positions(position_origin, Point2((int(radius * 2), int(radius * 2))))
 
         if worker_tag:
-            self.strategy_mining.add_worker(worker_tag)
+            self.strategy_mining.add_worker_tag(worker_tag)
 
     def on_addon_complete(self, unit: Unit):
         self.on_build_complete(unit, None)

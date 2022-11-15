@@ -24,6 +24,7 @@ class CompetitiveBot(BotAIBase):
     def __init__(self) -> None:
         super().__init__()
         self.race = Race.Terran
+        self.testrea = 5
     
     async def on_start(self):
         await super().on_start()
