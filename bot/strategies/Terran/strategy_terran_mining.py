@@ -22,9 +22,6 @@ class StrategyTerranMining(Strategy):
 
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
-        
-    def start(self):
-        super().start()
 
         for townhall in self.bot.townhalls:
             self.create_squad_mining(townhall)
@@ -55,8 +52,7 @@ class StrategyTerranMining(Strategy):
                 break
 
         if squad_under_saturate and squad_over_saturate:
-            worker_tag = squad_over_saturate.remove_worker()
-            squad_under_saturate.add_worker(self.bot.units.find_by_tag(worker_tag))
+            squad_under_saturate.add_unit(squad_over_saturate.get_worker())
 
     async def step(self):
         self.step_new_worker()
@@ -83,12 +79,12 @@ class StrategyTerranMining(Strategy):
         squads.sort(key=lambda squad: squad.position.distance_to(worker.position))
         for squad in squads:
             if squad.get_saturation_left() > 0:
-                squad.add_worker(worker)
+                squad.add_unit(worker)
                 worker = None
                 break
         
         if worker:
-            squads[0].add_worker(worker)
+            squads[0].add_unit(worker)
 
     def add_worker_tag(self, worker_tag: int):
         worker = self.bot.workers.find_by_tag(worker_tag)
@@ -99,9 +95,9 @@ class StrategyTerranMining(Strategy):
         squads.sort(key=lambda squad: squad.position.distance_to(near))
         worker = None
         for squad in squads:
-            worker_tag = squad.remove_worker()
-            if worker_tag:
-                return self.bot.workers.find_by_tag(worker_tag)
+            worker = squad.get_worker(near)
+            if worker:
+                return worker
 
     def get_vespene_geyser(self) -> Optional[int]:
         for squad in self.squads_mining:

@@ -45,6 +45,10 @@ class BotAIBase(BotAI):
     def get_main_city(self) -> City:
         return self.cities[0]
 
+    def add_strategy(self, strategy):
+        self.strategy = strategy
+        self.strategy.post_init(self)
+        
     async def on_unit_created(self, unit: Unit):
         self.producer.on_unit_created(unit)
         self.strategy._on_unit_created(unit)

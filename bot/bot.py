@@ -20,7 +20,6 @@ class CompetitiveBot(BotAIBase):
         Race.Random
     """
 
-
     def __init__(self) -> None:
         super().__init__()
         self.race = Race.Terran
@@ -29,12 +28,9 @@ class CompetitiveBot(BotAIBase):
     async def on_start(self):
         await super().on_start()
 
-        await self.client.debug_show_map()
+        # await self.client.debug_show_map()
         #self.strategy = StrategyZergRoot(self)
-        self.strategy = StrategyTerranRoot()
-        self.strategy.post_init(self)
+        self.add_strategy(StrategyTerranRoot())
         
-        self.strategy.start()
-
     async def on_step(self, iteration: int):
         await super().on_step(iteration)

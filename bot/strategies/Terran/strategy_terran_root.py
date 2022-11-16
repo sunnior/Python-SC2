@@ -11,8 +11,5 @@ class StrategyTerranRoot(Strategy):
 
         self.add_sub_strategy(StrategyTerranPigStart())
 
-    def start(self):
-        super().start()
-
     def debug_string(self) -> str:
         return "TerranRoot"

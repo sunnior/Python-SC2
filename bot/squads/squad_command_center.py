@@ -13,3 +13,6 @@ class SquadCommandCenter(Squad):
         for cc in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready:
             if cc.energy >= self.cost_energy_mule:
                 return cc
+
+    def debug_string(self) -> str:
+        return "CommandCenter"

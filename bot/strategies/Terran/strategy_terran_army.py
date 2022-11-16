@@ -27,8 +27,6 @@ class StrategyTerranArmy(Strategy):
 
         self.setup_orders()
 
-    def start(self):
-        super().start()
         scale = 1
         self.compositions = [
             (UnitTypeId.MARINE, 8 * scale),

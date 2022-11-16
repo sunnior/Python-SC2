@@ -15,6 +15,8 @@ class SquadTerranArmy(Squad):
         self.cache_count_total = 0
 
     def add_unit(self, unit: Unit):
+        super().add_unit(unit)
+
         for composition in self.compositions:
             if composition["type"] == unit.type_id:
                 composition["units"].append(unit.tag)
@@ -23,7 +25,7 @@ class SquadTerranArmy(Squad):
 
         assert(False)
 
-    def on_unit_destroyed(self, unit: Unit):
+    def on_my_unit_destroyed(self, unit: Unit):
         for composition in self.compositions:
             if composition["type"] == unit.type_id and unit.tag in composition["units"]:
                 composition["units"].remove(unit.tag)

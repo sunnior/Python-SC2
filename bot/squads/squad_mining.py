@@ -4,6 +4,7 @@ from bot.bot_ai_base import BotAIBase
 from bot.squads.squad import Squad
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 from sc2.unit import Unit
 
 class SquadMining(Squad):
@@ -35,22 +36,29 @@ class SquadMining(Squad):
                     workers_per_vespene[1].append(worker_tag)
 
 
-    def add_worker(self, worker: Unit):
-        self.workers_mineral.append(worker.tag)
+    def add_unit(self, unit: Unit):
+        super().add_unit(unit)
+
+        self.workers_mineral.append(unit.tag)
         mineral = self.bot.mineral_field.find_by_tag(self.mineral_field[random.randrange(0, len(self.mineral_field))])
-        worker.gather(mineral)
+        unit.gather(mineral)
 
     def init_workers(self, workers: list[Unit]):
         self.workers_mineral = [ worker.tag for worker in workers ]
 
-    def remove_worker(self):
+    def get_worker(self, near: Point2 = None) -> Unit:
+        worker_tag = None
         #todo 默认采气
         if len(self.workers_mineral) > 0:
-            return self.workers_mineral.pop()
-
-        for workers_per_vespene in self.workers_vespene:
-            if len(workers_per_vespene[1]) > 0:
-                return workers_per_vespene[1].pop()
+            worker_tag = self.workers_mineral.pop()
+        else:
+            for workers_per_vespene in self.workers_vespene:
+                if len(workers_per_vespene[1]):
+                    worker_tag = workers_per_vespene[1].pop()
+                    break
+            
+        if worker_tag:
+            return self.bot.workers.find_by_tag(worker_tag)
 
     def get_saturation_left(self):
         return len(self.mineral_field) * 2 + 2 - len(self.workers_mineral)

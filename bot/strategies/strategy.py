@@ -13,10 +13,6 @@ class Strategy():
     def post_init(self, bot : BotAIBase):
         self.bot = bot
 
-    def start(self):
-        for strategy in self.substrategies:
-            strategy.start()
-
     def add_acts(self, acts: list[ActBase]):
         for act in acts:
             if act in self.acts:
@@ -118,4 +114,4 @@ class Strategy():
         return debug_info
 
     def debug_string(self) -> str:
-        return ""
+        return "StrategyUnknown"

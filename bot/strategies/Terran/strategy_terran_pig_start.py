@@ -10,6 +10,8 @@ from bot.squads.squad_command_center import SquadCommandCenter
 from bot.strategies.strategy import Strategy
 from bot.strategies.Terran.strategy_terran_army import StrategyTerranArmy
 from bot.strategies.Terran.strategy_terran_mining import StrategyTerranMining
+from bot.strategies.Terran.strategy_terran_scout import StrategyTerranScout
+
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -125,17 +127,17 @@ class StrategyTerranPigStart(Strategy):
 
         self.strategy_mining = StrategyTerranMining(self.squad_cc)
         self.strategy_army = StrategyTerranArmy()
+        self.strategy_scout = StrategyTerranScout()
 
         self.add_sub_strategy(self.strategy_mining)
         self.add_sub_strategy(self.strategy_army)
-
-        self.build_helper = BuildHelperTerranPigStart(self.bot, self.strategy_mining, self.strategy_army)
+        self.add_sub_strategy(self.strategy_scout)
 
         self.setup_build_order()
-        
-
 
     def setup_build_order(self):
+        self.build_helper = BuildHelperTerranPigStart(self.bot, self.strategy_mining, self.strategy_army)
+
         acts: list[ActBase] = [
             ActSequence(
                 ActCheckSupplyUsed(14), 
@@ -148,7 +150,7 @@ class StrategyTerranPigStart(Strategy):
                 ActAnd(
                     ActSequence(
                         ActOrderBuild(UnitTypeId.BARRACKS, self.build_helper), 
-                        ActOrderTerranUnit(UnitTypeId.REAPER, 1),
+                        ActOrderTerranUnit(UnitTypeId.REAPER, 1, self.on_reaper_created),
                         ActOrderBuildAddon(UnitTypeId.BARRACKSREACTOR, self.build_helper)
                     ),
                     ActOrderBuild(UnitTypeId.REFINERY, self.build_helper)
@@ -215,6 +217,15 @@ class StrategyTerranPigStart(Strategy):
         ]
 
         self.add_acts(acts)
+
+    async def step(self):
+        await super().step()
+        #todo 临时
+        #if self.strategy_scout.is_empty():
+        #    self.strategy_scout.add_unit(self.strategy_mining.remove_worker(self.bot.townhalls[0].position))
+
+    def on_reaper_created(self, unit: Unit):
+        self.strategy_scout.add_unit(unit)
 
     def debug_string(self) -> str:
         return "TerranPigDiamond"
