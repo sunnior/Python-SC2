@@ -1,19 +1,24 @@
 from typing import Optional
+from bot.acts.act_check_unit import ActCheckBuildReady
+from bot.acts.act_flow_control import ActLoop, ActSequence
 from bot.acts.act_order import ActOrderTerranUnit
-from bot.orders.interface_build_helper import InterfaceBuildHelper
+from bot.acts.act_skill import ActSkill, ActSkillCallMule
 from bot.bot_ai_base import BotAIBase
+from bot.squads.squad_command_center import SquadCommandCenter
 from bot.strategies.strategy import Strategy
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from bot.squads.squad_mining import SquadMining
 from sc2.position import Point2
 from sc2.unit import Unit
     
-class StrategyTerranMining(Strategy, InterfaceBuildHelper):
-    def __init__(self) -> None:
+class StrategyTerranMining(Strategy):
+    def __init__(self, squad_cc: SquadCommandCenter) -> None:
         super().__init__()
         self.is_order_worker = None
         self.squads_mining: list[SquadMining] = []
         self.new_workers: list[Unit] = []
+        self.squad_cc: SquadCommandCenter = squad_cc
 
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
@@ -28,6 +33,7 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
 
         self.act_order_worker = ActOrderTerranUnit(UnitTypeId.SCV, 99, self.on_order_unit_created)
         self.add_acts([self.act_order_worker])
+        self.add_acts([ActSequence(ActCheckBuildReady(UnitTypeId.ORBITALCOMMAND), ActLoop(ActSkillCallMule(self.squad_cc, self.squads_mining)))]) 
 
     def step_new_worker(self):
         for worker in self.new_workers:
@@ -68,7 +74,7 @@ class StrategyTerranMining(Strategy, InterfaceBuildHelper):
             self.add_acts([self.act_order_worker])
 
     def create_squad_mining(self, townhall: Unit):
-        squad_mining = SquadMining(self.bot, townhall)
+        squad_mining = SquadMining(townhall)
         self.squads_mining.append(squad_mining)
         self.add_squad(squad_mining)
 

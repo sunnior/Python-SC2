@@ -1,16 +1,13 @@
-"""
-任何一个单位都需要在一个squad种
-"""
-
+from sc2.bot_ai import BotAI
 from sc2.unit import Unit
 
 
 class Squad():
     def __init__(self) -> None:
-        self.is_done = False
-
-    def on_submit(self):
-        pass
+        self.bot: BotAI = None
+        
+    def on_added(self, bot: BotAI):
+        self.bot = bot
     
     def step(self):
         pass

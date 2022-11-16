@@ -2,7 +2,6 @@ from bot.acts.act_base import ActBase
 from bot.acts.act_flow_control import ActComposite
 from bot.squads.squad import Squad
 from bot.bot_ai_base import BotAIBase
-from sc2.position import Point2
 from sc2.unit import Unit
 
 class Strategy():
@@ -60,7 +59,7 @@ class Strategy():
 
     def add_squad(self, squad):
         self.squads.append(squad)
-        squad.on_submit()
+        squad.on_added(self.bot)
 
     def on_unit_created(self, unit: Unit):
         pass
@@ -89,15 +88,15 @@ class Strategy():
             debug_info = debug_info + prefix + "   Lacts: "
             for act in self.acts:
                 debug_info = debug_info + act.debug_string() + " "
-                if isinstance(act, ActComposite):
-                    debug_info = debug_info + "\n" + prefix + "          "
+                #if isinstance(act, ActComposite):
+                debug_info = debug_info + "\n" + prefix + "          "
 
         debug_info = debug_info + "\n"
 
         if len(self.squads) > 0:
             debug_info = debug_info + prefix + "   L "
             for squad in self.squads:
-                debug_info = debug_info + " " + squad.debug_string()
+                debug_info = debug_info + " " + squad.debug_string() + "\n"
             debug_info = debug_info + "\n"
 
         next_prefix = prefix + "  "

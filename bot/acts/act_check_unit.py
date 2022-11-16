@@ -22,9 +22,8 @@ class ActCheckBuildReady(ActBase):
 
     async def execute(self) -> bool:
         for structure in self.bot.structures:
-            if structure.type_id in self.unit_types:
-                if structure.build_progress == 1:
-                    return True
+            if structure.type_id in self.unit_types and structure.is_ready:
+                return True
 
         return False
 

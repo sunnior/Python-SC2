@@ -6,6 +6,7 @@ from bot.acts.act_order import ActOrderBuild, ActOrderBuildAddon, ActOrderTerran
 from bot.bot_ai_base import BotAIBase
 from bot.city.city import City
 from bot.orders.interface_build_helper import InterfaceBuildHelper
+from bot.squads.squad_command_center import SquadCommandCenter
 from bot.strategies.strategy import Strategy
 from bot.strategies.Terran.strategy_terran_army import StrategyTerranArmy
 from bot.strategies.Terran.strategy_terran_mining import StrategyTerranMining
@@ -55,6 +56,8 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
             position = await main_city.get_placement_in_choke(unit_type)
         else:
             position = await main_city.get_placement_in_back(unit_type)
+            if not position:
+                position = await main_city.get_placement_in_base(unit_type)
         return position
         
     async def get_army_building_position(self, unit_type: UnitTypeId):
@@ -117,7 +120,10 @@ class StrategyTerranPigStart(Strategy):
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
         
-        self.strategy_mining = StrategyTerranMining()
+        self.squad_cc = SquadCommandCenter()
+        self.add_squad(self.squad_cc)
+
+        self.strategy_mining = StrategyTerranMining(self.squad_cc)
         self.strategy_army = StrategyTerranArmy()
 
         self.add_sub_strategy(self.strategy_mining)
@@ -126,6 +132,8 @@ class StrategyTerranPigStart(Strategy):
         self.build_helper = BuildHelperTerranPigStart(self.bot, self.strategy_mining, self.strategy_army)
 
         self.setup_build_order()
+        
+
 
     def setup_build_order(self):
         acts: list[ActBase] = [

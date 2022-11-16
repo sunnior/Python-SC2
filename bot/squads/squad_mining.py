@@ -2,25 +2,26 @@
 import random
 from bot.bot_ai_base import BotAIBase
 from bot.squads.squad import Squad
+from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 
 class SquadMining(Squad):
 
-    def __init__(self, bot : BotAIBase, townhall: Unit) -> None:
+    def __init__(self, townhall: Unit) -> None:
         super().__init__()
-        self.bot = bot
         self.workers_mineral: list[int] = []
         self.workers_vespene: list[tuple[int, list[int]]] = []
         self.townhall = townhall.tag
         self.position = townhall.position
 
+    def on_added(self, bot: BotAI):
+        super().on_added(bot)
         expansion_locations_dict = bot.expansion_locations_dict
-        resource_list = expansion_locations_dict[townhall.position]
+        resource_list = expansion_locations_dict[self.position]
         
         self.mineral_field = [ mineral.tag for mineral in resource_list.mineral_field ]
         self.vespene_geyser = [ vespene.tag for vespene in resource_list.vespene_geyser ]
-
 
     def step(self):
         #todo 默认采气
@@ -54,6 +55,9 @@ class SquadMining(Squad):
     def get_saturation_left(self):
         return len(self.mineral_field) * 2 + 2 - len(self.workers_mineral)
 
+    def get_random_mineral_field(self):
+        return self.mineral_field[random.randint(0, len(self.mineral_field))]
+        
     def get_free_vespene(self):
         if len(self.vespene_geyser):
             return self.vespene_geyser[0]

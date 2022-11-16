@@ -196,8 +196,8 @@ class City():
     
         choke_min_x_ex = min(choke_min_x, choke_max_x - 6)
         choke_max_x_ex = max(choke_max_x, choke_min_x + 6)
-        choke_max_y_ex = max(choke_max_y, choke_min_y + 6)
-        choke_min_y_ex = min(choke_min_y, choke_max_y - 6)
+        choke_max_y_ex = max(choke_max_y, choke_min_y + 4)
+        choke_min_y_ex = min(choke_min_y, choke_max_y - 4)
 
         for x in range(choke_min_x_ex - 2, choke_max_x_ex + 1 + 2):
             for y in range(choke_min_y_ex - 2, choke_max_y_ex + 1 + 2):
@@ -289,6 +289,8 @@ class City():
                 self.choke_points.append(choke_point_local)
                 self.grid_distance_to_choke[choke_point_local[0]][choke_point_local[1]] = 0
 
+        self.choke_points.sort(key=lambda point: point[0])
+
         scan_points = self.choke_points.copy()
         next_scan_points: list[Point2] = []
 
@@ -379,7 +381,7 @@ class City():
             for y in range(position_origin[1], position_origin[1] + size[1]):
                 self.grid_lock[x][y] = 0
 
-    async def get_placement_in_base(self, unit_type: UnitTypeId, has_addon = False):
+    async def get_placement_in_base(self, unit_type: UnitTypeId, has_addon = False, reverse = False):
         unit_data = self.bot.game_data.units[unit_type.value]
         creation_ability = unit_data.creation_ability.id
         radius = unit_data.footprint_radius
@@ -396,10 +398,13 @@ class City():
             return True
 
         scan_points = self.points_block_base.copy()
+        if not reverse:
+            scan_points.reverse()
+
         while len(scan_points):
             possible_points = []
             while len(scan_points) and len(possible_points) < 10:
-                point = scan_points.pop(0)
+                point = scan_points.pop()
 
                 can_build = check_grid(point, building_size)
                 if can_build and has_addon:
@@ -515,7 +520,6 @@ class City():
                     position = possible[0]
                     return position
 
-        assert(False)
         return None
 
     def on_building_complete(self, unit: Unit):

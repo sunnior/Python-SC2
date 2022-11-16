@@ -1,11 +1,12 @@
-from MapAnalyzer.MapData import MapData
 from bot.city.city import City
-from sc2.bot_ai import BotAI
 from bot.producer_manager import ProducerManager
+from MapAnalyzer.MapData import MapData
+from sc2.bot_ai import BotAI
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
+
 
 class BotAIBase(BotAI):
 
@@ -40,21 +41,6 @@ class BotAIBase(BotAI):
 
         for city in self.cities:
             city.debug()
-
-        base_location = self.townhalls[0].position
-        region = self.map_data.where_all(base_location)[0]
-        choke_area = region.region_chokes[0]
-        buildables = choke_area.buildables
-        in_color = (0, 255, 0)
-        """
-        terrain_height = self.map_data.terrain_height.copy().T
-
-        show_points = []
-        for point in buildables.points:
-            in_point = Point3((*point, self.terrain_to_z_height(terrain_height[point])))
-            show_points.append(in_point)
-            self.client.debug_box2_out(in_point, color=in_color, half_vertex_length=0.25)
-        """
 
     def get_main_city(self) -> City:
         return self.cities[0]

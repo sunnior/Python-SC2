@@ -36,13 +36,11 @@ class OrderUpgrade(Order):
 
     async def produce(self) -> bool:
         for builder in self.bot.structures:
-            if builder.type_id != self.build_id:
-                continue
-
-            if builder.build_progress != 1:
-                continue
-            
-            if len(builder.orders):
+            if (
+                builder.type_id != self.build_id or
+                not builder.is_ready or
+                not builder.is_idle
+            ):
                 continue
 
             if builder.research(self.upgrade_id):
