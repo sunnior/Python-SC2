@@ -129,7 +129,7 @@ class City():
                     for y in range(point[1] - 1, point[1] + 2):
                         new_points.append(Point2((x, y)))
                 for new_point in new_points:
-                    if not self.is_point_in_region_box(new_point):
+                    if not self.is_point_in_region(new_point):
                         continue
 
                     if self.grid_blocks[new_point[0]][new_point[1]] != City.block_index_null:
@@ -168,7 +168,7 @@ class City():
                 new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
                 for new_point in new_points:
                     if (
-                        not self.is_point_in_region_box(new_point) or
+                        not self.is_point_in_region(new_point) or
                         self.grid_build[new_point[0]][new_point[1]] != City.grid_index_empty or
                         self.grid_blocks[new_point[0]][new_point[1]] != City.block_index_null or
                         self.grid_distance_to_edge[new_point[0]][new_point[1]] < 2 or
@@ -202,11 +202,11 @@ class City():
         for x in range(choke_min_x_ex - 2, choke_max_x_ex + 1 + 2):
             for y in range(choke_min_y_ex - 2, choke_max_y_ex + 1 + 2):
                 if x < choke_min_x_ex or x > choke_max_x_ex or y < choke_min_y_ex or y > choke_max_y_ex:
-                    if self.is_point_in_region_box(Point2((x, y))) and self.grid_build[x][y] == City.grid_index_empty:
+                    if self.is_point_in_region(Point2((x, y))) and self.grid_build[x][y] == City.grid_index_empty:
                         self.grid_road[x][y] = 1
                         continue
 
-                if self.is_point_in_region_box(Point2((x, y))) and self.grid_build[x][y] != City.grid_index_null:
+                if self.is_point_in_region(Point2((x, y))) and self.grid_build[x][y] != City.grid_index_null:
                     self.grid_blocks[x][y] = City.block_index_choke        
 
     def _cal_block_mining(self):
@@ -242,7 +242,7 @@ class City():
         def is_edge_point(point: Point2):
             new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
             for point in new_points:
-                if not self.is_point_in_region_box(point) or self.grid_build[point[0]][point[1]] == City.grid_index_null:
+                if not self.is_point_in_region(point):
                     return True
 
             return False
@@ -263,7 +263,7 @@ class City():
             for point in scan_points:
                 new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ]
                 for new_point in new_points: 
-                    if  not self.is_point_in_region_box(new_point) or self.grid_build[new_point[0]][new_point[1]] == City.grid_index_null:
+                    if  not self.is_point_in_region(new_point):
                             continue
                         
                     if self.grid_distance_to_edge[new_point[0]][new_point[1]] > distance:
@@ -302,7 +302,7 @@ class City():
         while len(scan_points) > 0:
             for point in scan_points:
                 new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ] 
-                new_points = [ new_point for new_point in new_points if self.is_point_in_region_box(new_point) and 
+                new_points = [ new_point for new_point in new_points if self.is_point_in_region(new_point) and 
                                                                         self.grid_build[new_point[0]][new_point[1]] == City.grid_index_empty and 
                                                                         grid_scaned[new_point[0]][new_point[1]] == 0]
                 for new_point in new_points:
@@ -339,9 +339,8 @@ class City():
                 new_points = [ point.offset(Point2((-1, 0))),point.offset(Point2((1, 0))), point.offset(Point2((0, 1))), point.offset(Point2((0, -1))) ]
                 for new_point in new_points:
                     if (
-                        self.is_point_in_region_box(new_point) and
-                        grid_mark[new_point[0]][new_point[1]] == 0 and
-                        self.grid_build[new_point[0]][new_point[1]] != City.grid_index_null
+                        self.is_point_in_region(new_point) and
+                        grid_mark[new_point[0]][new_point[1]] == 0
                     ):
                         grid_mark[new_point[0]][new_point[1]] = 1
                         next_scan_points.append(new_point)
@@ -353,15 +352,18 @@ class City():
         """Gets correct z from versions 4.9.0+"""
         return -16 + 32 * h / 255
 
-    def is_point_in_region_box(self, point: Point2) -> bool:
-        if point[0] < 0 or point[0] >= self.region_width:
-            return False
-        if point[1] < 0 or point[1] >= self.region_height:
-            return False    
-        return True
+    def is_point_in_region(self, point: Point2) -> bool:
+        if (
+            point[0] >= 0 and point[0] <self.region_width and point[1] >= 0 and point[1] < self.region_height and
+            #在box里面也可能不是这个region的
+            self.grid_build[point[0]][point[1]] != City.grid_index_null
+        ):
+            return True
+
+        return False
 
     def is_point_buildable(self, point: Point2) -> bool:
-        if not self.is_point_in_region_box(point):
+        if not self.is_point_in_region(point):
             return False
         
         if self.grid_build[point[0]][point[1]] != City.grid_index_empty or self.grid_lock[point[0]][point[1]] != 0 or self.grid_road[point[0]][point[1]]:
@@ -530,7 +532,7 @@ class City():
         position_local = position.offset(-self.region_origin).offset(-building_size_half).rounded
         for x in range(position_local[0], position_local[0] + building_size[0]):
             for y in range(position_local[1], position_local[1] + building_size[1]):
-                if self.is_point_in_region_box(Point2((x, y))):
+                if self.is_point_in_region(Point2((x, y))):
                     self.grid_build[x][y] = City.grid_index_building
     
     def debug(self):

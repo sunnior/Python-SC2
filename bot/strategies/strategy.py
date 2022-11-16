@@ -82,6 +82,17 @@ class Strategy():
         for strategy in self.substrategies:
             strategy._on_building_construction_complete(unit)
 
+    def _on_unit_destroyed(self, unit: Unit):
+        for squad in self.squads:
+            squad.on_unit_destroyed(unit)
+
+        self.on_unit_destroyed(unit)
+        for strategy in self.substrategies:
+            strategy._on_unit_destroyed(unit)
+
+    def on_unit_destroyed(self, unit: int):
+        pass
+
     def debug(self, prefix : str) -> str:
         debug_info =  self.debug_string() + "\n"
         if len(self.acts) > 0:
@@ -96,7 +107,7 @@ class Strategy():
         if len(self.squads) > 0:
             debug_info = debug_info + prefix + "   L "
             for squad in self.squads:
-                debug_info = debug_info + " " + squad.debug_string() + "\n"
+                debug_info = debug_info + " " + squad.debug_string() + "\n" + prefix + "     "
             debug_info = debug_info + "\n"
 
         next_prefix = prefix + "  "

@@ -15,5 +15,8 @@ class Squad():
     def on_building_construction_complete(self, unit: Unit):
         pass
 
+    def on_unit_destroyed(self, unit: Unit):
+        pass
+
     def debug_string(self) -> str:
         return "Unkown"

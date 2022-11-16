@@ -63,5 +63,6 @@ class BotAIBase(BotAI):
         self.producer.on_unit_type_changed(unit, previous_type)
 
     async def on_unit_destroyed(self, unit_tag: int):
-        pass
+        unit = self._all_units_previous_map[unit_tag]
+        self.strategy._on_unit_destroyed(unit)
 

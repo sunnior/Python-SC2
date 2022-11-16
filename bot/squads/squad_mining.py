@@ -56,7 +56,7 @@ class SquadMining(Squad):
         return len(self.mineral_field) * 2 + 2 - len(self.workers_mineral)
 
     def get_random_mineral_field(self):
-        return self.mineral_field[random.randint(0, len(self.mineral_field))]
+        return self.mineral_field[random.randint(0, len(self.mineral_field) - 1)]
         
     def get_free_vespene(self):
         if len(self.vespene_geyser):
@@ -70,6 +70,15 @@ class SquadMining(Squad):
                     self.vespene_geyser.remove(geyser_tag)
                     self.workers_vespene.append((unit.tag, []))
                     break
+
+    def on_unit_destroyed(self, unit: Unit):
+        if unit.type_id != UnitTypeId.SCV:
+            return
+        
+        if unit.tag in self.workers_mineral:
+            self.workers_mineral.remove(unit.tag)
+        elif unit.tag in self.workers_vespene:
+            self.workers_vespene.remove(unit.tag)
 
     def debug_string(self) -> str:
         count_workers_vespene = 0

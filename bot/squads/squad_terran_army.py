@@ -23,6 +23,12 @@ class SquadTerranArmy(Squad):
 
         assert(False)
 
+    def on_unit_destroyed(self, unit: Unit):
+        for composition in self.compositions:
+            if composition["type"] == unit.type_id and unit.tag in composition["units"]:
+                composition["units"].remove(unit.tag)
+                return        
+
     def attack(self, target: Union[Point2, Unit]):
         for composition in self.compositions:
             for unit_tag in composition["units"]:
