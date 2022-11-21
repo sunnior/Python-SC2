@@ -134,3 +134,5 @@ dmypy.json
 # Pycharm
 /.idea
 MapAnalyzer
+x64
+.vs

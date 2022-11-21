@@ -12,6 +12,8 @@ from sc2.client import Client
 from sc2.player import Bot, Computer
 from sc2.protocol import ConnectionAlreadyClosed
 
+from map import init as cext_map_init
+
 
 # Run ladder game
 # This lets python-sc2 connect to a ladder game.
@@ -110,6 +112,8 @@ def load_bot(args):
 
 
 def run():
+    cext_map_init()
+
     args = parse_arguments()
 
     bot = load_bot(args)

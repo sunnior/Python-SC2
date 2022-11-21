@@ -1,3 +1,4 @@
+import os
 from bot.city.city import City
 from bot.producer_manager import ProducerManager
 from MapAnalyzer.MapData import MapData
@@ -6,7 +7,7 @@ from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
-
+from map import init as cext_map_init
 
 class BotAIBase(BotAI):
 
@@ -23,12 +24,22 @@ class BotAIBase(BotAI):
         return -16 + 32 * h / 255
 
     async def on_start(self):
+        pid = os.getpid()
+        print(pid)
+
         self.map_data : MapData = MapData(self)
+        #self.map_data.plot_map()
+        #self.map_data.save("xxxeeesss")
+
         region = self.map_data.where_all(self.start_location)[0]
         if self.race == Race.Terran:
             self.cities.append(City(self, self.map_data, region))
 
     async def on_step(self, iteration: int):
+
+        str_test = cext_map_init()
+        print(str_test)
+
         await self.producer.step()
 
         await self.strategy._step()
@@ -48,7 +59,7 @@ class BotAIBase(BotAI):
     def add_strategy(self, strategy):
         self.strategy = strategy
         self.strategy.post_init(self)
-        
+
     async def on_unit_created(self, unit: Unit):
         self.producer.on_unit_created(unit)
         self.strategy._on_unit_created(unit)

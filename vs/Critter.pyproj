@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{ec012ba7-16a0-4289-b9c1-c522680f2e30}</ProjectGuid>
+    <ProjectHome>..\</ProjectHome>
+    <StartupFile>run.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>MSBuild|venv|$(MSBuildProjectFullPath)</InterpreterId>
+    <Name>critter</Name>
+    <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="requirements.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="bot\acts\act_base.py" />
+    <Compile Include="bot\acts\act_check_unit.py" />
+    <Compile Include="bot\acts\act_flow_control.py" />
+    <Compile Include="bot\acts\act_order.py" />
+    <Compile Include="bot\acts\act_skill.py" />
+    <Compile Include="bot\bot.py" />
+    <Compile Include="bot\bot_ai_base.py" />
+    <Compile Include="bot\city\city.py" />
+    <Compile Include="bot\orders\interface_build_helper.py" />
+    <Compile Include="bot\orders\order.py" />
+    <Compile Include="bot\orders\order_addon.py" />
+    <Compile Include="bot\orders\order_build.py" />
+    <Compile Include="bot\orders\order_build_woker.py" />
+    <Compile Include="bot\orders\order_terran_unit.py" />
+    <Compile Include="bot\orders\order_unit.py" />
+    <Compile Include="bot\orders\order_upgrade.py" />
+    <Compile Include="bot\orders\order_zerg_unit.py" />
+    <Compile Include="bot\producer_manager.py" />
+    <Compile Include="bot\squads\squad.py" />
+    <Compile Include="bot\squads\squad_command_center.py" />
+    <Compile Include="bot\squads\squad_mining.py" />
+    <Compile Include="bot\squads\squad_scout.py" />
+    <Compile Include="bot\squads\squad_terran_army.py" />
+    <Compile Include="bot\strategies\strategy.py" />
+    <Compile Include="bot\strategies\Terran\strategy_terran_army.py" />
+    <Compile Include="bot\strategies\Terran\strategy_terran_mining.py" />
+    <Compile Include="bot\strategies\Terran\strategy_terran_pig_start.py" />
+    <Compile Include="bot\strategies\Terran\strategy_terran_root.py" />
+    <Compile Include="bot\strategies\Terran\strategy_terran_scout.py" />
+    <Compile Include="bot\strategies\Terran\__init__.py" />
+    <Compile Include="bot\strategies\zerg\strategy_zerg_mining.py" />
+    <Compile Include="bot\strategies\zerg\strategy_zerg_root.py" />
+    <Compile Include="bot\strategies\zerg\strategy_zerg_supply.py" />
+    <Compile Include="bot\strategies\zerg\__init__.py" />
+    <Compile Include="bot\strategies\__init__.py" />
+    <Compile Include="bot\__init__.py" />
+    <Compile Include="create_ladder_zip.py" />
+    <Compile Include="run.py" />
+    <Compile Include="sc2\action.py" />
+    <Compile Include="sc2\bot_ai.py" />
+    <Compile Include="sc2\bot_ai_internal.py" />
+    <Compile Include="sc2\cache.py" />
+    <Compile Include="sc2\client.py" />
+    <Compile Include="sc2\constants.py" />
+    <Compile Include="sc2\controller.py" />
+    <Compile Include="sc2\data.py" />
+    <Compile Include="sc2\dicts\generic_redirect_abilities.py" />
+    <Compile Include="sc2\dicts\unit_abilities.py" />
+    <Compile Include="sc2\dicts\unit_research_abilities.py" />
+    <Compile Include="sc2\dicts\unit_tech_alias.py" />
+    <Compile Include="sc2\dicts\unit_trained_from.py" />
+    <Compile Include="sc2\dicts\unit_train_build_abilities.py" />
+    <Compile Include="sc2\dicts\unit_unit_alias.py" />
+    <Compile Include="sc2\dicts\upgrade_researched_from.py" />
+    <Compile Include="sc2\dicts\__init__.py" />
+    <Compile Include="sc2\expiring_dict.py" />
+    <Compile Include="sc2\game_data.py" />
+    <Compile Include="sc2\game_info.py" />
+    <Compile Include="sc2\game_state.py" />
+    <Compile Include="sc2\generate_ids.py" />
+    <Compile Include="sc2\ids\ability_id.py" />
+    <Compile Include="sc2\ids\buff_id.py" />
+    <Compile Include="sc2\ids\effect_id.py" />
+    <Compile Include="sc2\ids\id_version.py" />
+    <Compile Include="sc2\ids\unit_typeid.py" />
+    <Compile Include="sc2\ids\upgrade_id.py" />
+    <Compile Include="sc2\ids\__init__.py" />
+    <Compile Include="sc2\main.py" />
+    <Compile Include="sc2\maps.py" />
+    <Compile Include="sc2\observer_ai.py" />
+    <Compile Include="sc2\paths.py" />
+    <Compile Include="sc2\pixel_map.py" />
+    <Compile Include="sc2\player.py" />
+    <Compile Include="sc2\portconfig.py" />
+    <Compile Include="sc2\position.py" />
+    <Compile Include="sc2\power_source.py" />
+    <Compile Include="sc2\protocol.py" />
+    <Compile Include="sc2\proxy.py" />
+    <Compile Include="sc2\renderer.py" />
+    <Compile Include="sc2\sc2process.py" />
+    <Compile Include="sc2\score.py" />
+    <Compile Include="sc2\unit.py" />
+    <Compile Include="sc2\units.py" />
+    <Compile Include="sc2\unit_command.py" />
+    <Compile Include="sc2\versions.py" />
+    <Compile Include="sc2\wsl.py" />
+    <Compile Include="sc2\__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="bot" />
+    <Folder Include="bot\acts" />
+    <Folder Include="bot\city" />
+    <Folder Include="bot\orders" />
+    <Folder Include="bot\squads" />
+    <Folder Include="bot\strategies" />
+    <Folder Include="bot\strategies\Terran" />
+    <Folder Include="bot\strategies\zerg" />
+    <Folder Include="sc2" />
+    <Folder Include="sc2\dicts" />
+    <Folder Include="sc2\ids" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="venv\">
+      <Id>venv</Id>
+      <Description>venv (Python 3.10 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <Version>3.10</Version>
+      <Architecture>X64</Architecture>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+    </Interpreter>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="vs\map\map.vcxproj">
+      <Name>map</Name>
+      <Project>{4cae9b14-49ec-4b94-a465-21311fe57320}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>

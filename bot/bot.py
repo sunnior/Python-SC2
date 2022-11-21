@@ -28,7 +28,7 @@ class CompetitiveBot(BotAIBase):
     async def on_start(self):
         await super().on_start()
 
-        # await self.client.debug_show_map()
+        await self.client.debug_show_map()
         #self.strategy = StrategyZergRoot(self)
         self.add_strategy(StrategyTerranRoot())
         
