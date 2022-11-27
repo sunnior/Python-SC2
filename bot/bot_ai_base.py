@@ -7,7 +7,7 @@ from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
-from map import init as cext_map_init
+from cmap import init as cext_map_init
 
 class BotAIBase(BotAI):
 
