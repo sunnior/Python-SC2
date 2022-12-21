@@ -44,7 +44,7 @@ class MapTool():
 		grid_path = numpy.fmax(grid_path, grid_placement)
 		grid_path = grid_path[playable_area[0]:(playable_area[2] + playable_area[0]), playable_area[1]:(playable_area[3] + playable_area[1])]
 
-		grid_height = numpy.load("test_height_np.npy").astype('float32')
+		grid_height = numpy.load("test_height_np.npy").astype('uint8')
 		grid_height = grid_height[playable_area[0]:(playable_area[2] + playable_area[0]), playable_area[1]:(playable_area[3] + playable_area[1])]
 
 		grid_distance, grid_ridge, grid_region = cmap_tool_init(grid_path, grid_height)
@@ -66,6 +66,11 @@ class MapTool():
 		x = indices[0].flatten()
 		y = indices[1].flatten()
 		z = grid_region.flatten().astype("float32")
+
+		with numpy.nditer(z, flags=[], op_flags=['readwrite']) as it:
+			for iz in it:
+				if iz > 0:
+					iz[...] = iz * 4 + 40
 
 		fig, ax = plt.subplots()
 		fig.set_size_inches((10, 10))

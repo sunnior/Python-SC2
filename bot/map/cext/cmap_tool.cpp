@@ -21,8 +21,8 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 
     size_x = (int)walkable_object->dimensions[0];
     size_y = (int)walkable_object->dimensions[1];
-	uint8_t* walkables = (uint8_t*)walkable_object->data;
-	uint32_t* heights = (uint32_t*)heights_object->data;
+	//uint8_t* walkables = (uint8_t*)walkable_object->data;
+	//uint32_t* heights = (uint32_t*)heights_object->data;
     PyArrayObject* distance_np = (PyArrayObject*)PyArray_SimpleNew(2, walkable_object->dimensions, NPY_UINT8);
 
 	//calulate distance
@@ -55,7 +55,7 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 				npy_uint8* ptr = (npy_uint8*)(distance_np->data + x * distance_np->strides[0] + y * distance_np->strides[1]);
 				npy_uint8* ptr_walk = (npy_uint8*)(walkable_object->data + x * walkable_object->strides[0] + y * walkable_object->strides[1]);
 
-				if (*ptr_walk > 0)
+				if (*ptr_walk)
 				{
 					*ptr = 99;
 					if (is_edge(x, y))
@@ -85,7 +85,6 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 					int x = point.first + offsets[i][0];
 					int y = point.second + offsets[i][1];
 
-					npy_uint8* ptr_walk = (npy_uint8*)(walkable_object->data + x * walkable_object->strides[0] + y * walkable_object->strides[1]);
 					npy_uint8* ptr_dis = (npy_uint8*)(distance_np->data + x * distance_np->strides[0] + y * distance_np->strides[1]);
 					if (*ptr_dis > distance)
 					{
@@ -105,6 +104,90 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 
 	//get region
 	{
+		int region_idx = 1;
+		auto is_ramp = [&](int x, int y)
+		{
+			npy_uint8* ptr_height = (npy_uint8*)(heights_object->data + x * heights_object->strides[0] + y * heights_object->strides[1]);
+			std::vector<std::pair<int, int>> points_nbr = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+			for (auto& point_nbr : points_nbr)
+			{
+				int x_nbr = point_nbr.first + x;
+				int y_nbr = point_nbr.second + y;
+				npy_uint8* ptr_dis_nbr = (npy_uint8*)(distance_np->data + x_nbr * distance_np->strides[0] + y_nbr * distance_np->strides[1]);
+				if (!*ptr_dis_nbr)
+				{
+					continue;
+				}
+
+				npy_uint8* ptr_height_nbr = (npy_uint8*)(heights_object->data + x_nbr * heights_object->strides[0] + y_nbr * heights_object->strides[1]);
+
+				if (*ptr_height_nbr != *ptr_height)
+				{
+					return true;
+				}
+
+			}
+			return false;
+		};
+
+/*
+		for (int y = 0; y < size_y; ++y)
+		{
+			for (int x = 0; x < size_x; ++x)
+			{
+				npy_uint8* ptr_dis = (npy_uint8*)(distance_np->data + x * distance_np->strides[0] + y * distance_np->strides[1]);
+				if (*ptr_dis <= 1)
+				{
+					continue;
+				}
+
+				npy_uint8* ptr_region = (npy_uint8*)(region_np->data + x * region_np->strides[0] + y * region_np->strides[1]);
+				if (*ptr_region)
+				{
+					continue;
+				}
+				if (is_ramp(x, y))
+				{
+					std::vector<std::pair<int, int>> scan_points, next_scan_points;
+					scan_points.push_back(std::pair<int, int>(x, y));
+					*ptr_region = region_idx;
+					while (scan_points.size())
+					{
+						for (auto& point : scan_points)
+						{
+							std::vector<std::pair<int, int>> points_nbr = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+							for (auto& point_nbr : points_nbr)
+
+							{
+								int x_nbr = point_nbr.first + point.first;
+								int y_nbr = point_nbr.second + point.second;
+								npy_uint8* ptr_region_nbr = (npy_uint8*)(region_np->data + x_nbr * region_np->strides[0] + y_nbr * region_np->strides[1]);
+								if (*ptr_region_nbr)
+								{
+									continue;
+								}
+								npy_uint8* ptr_dis = (npy_uint8*)(distance_np->data + x * distance_np->strides[0] + y * distance_np->strides[1]);
+								if (!*ptr_dis)
+								{
+									continue;
+								}
+								if (is_ramp(x_nbr, y_nbr))
+								{
+									*ptr_region_nbr = region_idx;
+									next_scan_points.push_back(std::pair<int, int>(x_nbr, y_nbr));
+								}
+
+							}
+						}
+						scan_points = std::move(next_scan_points);
+					}
+					++region_idx;
+				}
+			}
+		}
+		int ramp_idx_max = region_idx;
+*/
+
 		auto is_ridge = [&](int x, int y)
 		{
 			if (x - 1 < 0 || x + 1 > size_x || y - 1 < 0 || y + 1 > size_y)
@@ -141,6 +224,12 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 		{
 			for (int x = 0; x < size_x; ++x)
 			{
+				npy_uint8* ptr_region = (npy_uint8*)(region_np->data + x * region_np->strides[0] + y * region_np->strides[1]);
+				if (*ptr_region)
+				{
+					continue;
+				}
+
 				npy_uint8* ptr_ridge = (npy_uint8*)(ridge_np->data + x * ridge_np->strides[0] + y * ridge_np->strides[1]);
 				if (is_ridge(x, y))
 				{
@@ -155,12 +244,20 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 		}
 
 		std::sort(ridge_points.begin(), ridge_points.end(), [&](auto& p1, auto& p2) {
+			if (is_ramp(p1.first, p1.second))
+			{
+				return true;
+			}
+
+			if (is_ramp(p2.first, p2.second))
+			{
+				return false;
+			}
 			npy_uint8* ptr_dis1 = (npy_uint8*)(distance_np->data + p1.first * distance_np->strides[0] + p1.second * distance_np->strides[1]);
-		npy_uint8* ptr_dis2 = (npy_uint8*)(distance_np->data + p2.first * distance_np->strides[0] + p2.second * distance_np->strides[1]);
+			npy_uint8* ptr_dis2 = (npy_uint8*)(distance_np->data + p2.first * distance_np->strides[0] + p2.second * distance_np->strides[1]);
 		return *ptr_dis1 < *ptr_dis2;
 			});
 
-		int region_idx = 1;
 		for (std::pair<int, int>& point : ridge_points)
 		{
 			npy_uint8* ptr_region = (npy_uint8*)(region_np->data + point.first * region_np->strides[0] + point.second * region_np->strides[1]);
@@ -171,40 +268,9 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 
 			*ptr_region = region_idx;
 
+			bool point_is_ramp = is_ramp(point.first, point.second);
 			std::vector<std::pair<int, int>> scan_points, next_scan_points;
 			scan_points.push_back(point);
-
-
-			/*
-						std::function<void(const std::pair<int, int>&)> FuncMergeNbr;
-						//寻找相邻
-						FuncMergeNbr = [&](const std::pair<int, int>& ipoint) {
-							for (int i = -1; i <= 1; ++i)
-							{
-								for (int j = -1; j <= 1; ++j)
-								{
-									if (!i && !j)
-									{
-										continue;
-									}
-									npy_uint8* ptr_region_nbr = (npy_uint8*)(region_np->data + (ipoint.first + i) * region_np->strides[0] + (ipoint.second + j) * region_np->strides[1]);
-									if (*ptr_region_nbr)
-									{
-										continue;
-									}
-									npy_uint8* ptr_distance_nbr = (npy_uint8*)(distance_np->data + (ipoint.first + i) * distance_np->strides[0] + (ipoint.second + j) * distance_np->strides[1]);
-									if (*ptr_distance_nbr == *ptr_dis)
-									{
-										*ptr_region_nbr = region_idx;
-										std::pair<int, int> point_nbr(ipoint.first + i, ipoint.second + j);
-										scan_points.push_back(point_nbr);
-										FuncMergeNbr(point_nbr);
-									}
-								}
-							}
-						};
-
-						FuncMergeNbr(point);*/
 
 			npy_uint8* ptr_dis_max = (npy_uint8*)(distance_np->data + point.first * distance_np->strides[0] + point.second * distance_np->strides[1]);
 
@@ -225,6 +291,11 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 							int y_nbr = j + ipoint.second;
 							npy_uint8* ptr_region_nbr = (npy_uint8*)(region_np->data + x_nbr * region_np->strides[0] + y_nbr * region_np->strides[1]);
 							if (*ptr_region_nbr)
+							{
+								continue;
+							}
+
+							if (point_is_ramp && !is_ramp(x_nbr, y_nbr))
 							{
 								continue;
 							}
@@ -347,6 +418,38 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 			}
 
 		}
+
+/*
+		//对于剩下的有2个以上区域连接的，如果只有一个区域是最大区域，那么就和这个区域合并
+		for (auto it = connects.begin(); it != connects.end(); ++it)
+		{
+			if (it->second.size() > 1)
+			{
+				int max_region = 0;
+				for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2)
+				{
+					if (connects.find(*it2) == connects.end())
+					{
+						if (!max_region)
+						{
+							max_region = *it2;
+						}
+						else
+						{
+							max_region = 0;
+							break;
+						}
+					}
+				}
+				if (max_region)
+				{
+					it->second.clear();
+					single_connect_mapping.insert(std::pair<int, int>(it->first, max_region));
+				}
+			}
+
+		}
+*/
 
 		for (int y = 0; y < size_y; ++y)
 		{
