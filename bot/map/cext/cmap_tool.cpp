@@ -301,13 +301,16 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 							}
 
 							npy_uint8* ptr_ridge = (npy_uint8*)(ridge_np->data + x_nbr * ridge_np->strides[0] + y_nbr * ridge_np->strides[1]);
+							npy_uint8* ptr_dis_nbr = (npy_uint8*)(distance_np->data + x_nbr * distance_np->strides[0] + y_nbr * distance_np->strides[1]);
 							if (*ptr_ridge)
 							{
-
+								if (*ptr_dis_nbr > *ptr_dis)
+								{
+									continue;
+								}
 							}
 							else
 							{
-								npy_uint8* ptr_dis_nbr = (npy_uint8*)(distance_np->data + x_nbr * distance_np->strides[0] + y_nbr * distance_np->strides[1]);
 								if (*ptr_dis_nbr == 0 || *ptr_dis_nbr >= *ptr_dis)
 								{
 									continue;
@@ -372,10 +375,35 @@ static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
 			bool has_new_mapping = false;
 			for (auto it = connects.begin(); it != connects.end(); ++it)
 			{
-				if (it->second.size() == 1)
+				int bigger = 0;
+				for (int id : it->second)
+				{
+					auto it2 = connects.find(id);
+					if (it2 == connects.end())
+					{
+						++bigger;
+						continue;
+					}
+
+					bool connected_big = false;
+					for (int id2 : it2->second)
+					{
+						if (std::find(it->second.begin(), it->second.end(), id2) != it->second.end())
+						{
+							connected_big = true;
+							break;
+						}
+					}
+					if (!connected_big)
+					{
+						++bigger;
+					}
+				}
+
+				if (bigger == 1) 
 				{
 					has_new_mapping = true;
-					single_connect_mapping.insert(std::pair<int, int>(it->first, it->second.front()));
+					single_connect_mapping.insert(std::pair<int, int>(it->first, *std::max_element(it->second.begin(), it->second.end())));
 					it->second.clear();
 					//auto it2 = connects.find(it->second.front());
 					//it2->second.erase(std::remove(it2->second.begin(), it2->second.end(), it->first), it2->second.end());
