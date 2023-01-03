@@ -18,11 +18,29 @@ class StrategyTerranArmy(Strategy):
 
     def post_init(self, bot: BotAIBase):
         super().post_init(bot)
+        main_region = self.bot.cities[0].region
+        main_choke_region = self.bot.map_tool.regions[main_region.regions_nbr[0][0]]
+        expand_region = None
+        for choke_nbr in main_choke_region.regions_nbr:
+            if choke_nbr[0] != main_region.region_id:
+                expand_region = self.bot.map_tool.regions[choke_nbr[0]]
+                break
 
-        path = self.bot.map_data.pathfind(self.bot.start_location, self.bot.enemy_start_locations[0])
-        self.rally_point_small = path[min(len(path) - 1, 32)]
-        path = self.bot.map_data.pathfind(self.bot.start_location, self.bot.enemy_start_locations[0], large=True)
-        self.rally_point_large = path[min(len(path), 30)]
+        min_enemy_distane = 9999
+        min_enemy_choke = None
+        for choke_nbr in expand_region.regions_nbr:
+            region_nbr = self.bot.map_tool.regions[choke_nbr[0]]
+            if region_nbr.enemy_topo_distance < min_enemy_distane:
+                min_enemy_distane = region_nbr.enemy_topo_distance
+                min_enemy_choke = choke_nbr
+
+        self.rally_point_small = min_enemy_choke[1][0]
+        self.rally_point_large = min_enemy_choke[1][0]
+                
+        #path = self.bot.map_data.pathfind(self.bot.start_location, self.bot.enemy_start_locations[0])
+        #self.rally_point_small = path[min(len(path) - 1, 32)]
+        #path = self.bot.map_data.pathfind(self.bot.start_location, self.bot.enemy_start_locations[0], large=True)
+        #self.rally_point_large = path[min(len(path), 30)]
         self.new_units: list[Unit] = []
 
         self.setup_orders()

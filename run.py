@@ -1,16 +1,19 @@
 
-from bot import CompetitiveBot
-
 import argparse
 import asyncio
 import logging
+
 import aiohttp
+
 import sc2
-from sc2.main import run_game
-from sc2.data import Race, Difficulty
+from bot import CompetitiveBot
+from bot.map.map_tool import MapTool
 from sc2.client import Client
+from sc2.data import Difficulty, Race
+from sc2.main import run_game
 from sc2.player import Bot, Computer
 from sc2.protocol import ConnectionAlreadyClosed
+
 
 # Run ladder game
 # This lets python-sc2 connect to a ladder game.
@@ -107,10 +110,9 @@ def load_bot(args):
 
     return Bot(CompetitiveBot.RACE, competitive_bot)
 
-
-def run():
+def run():    
+    #MapTool.test()
     args = parse_arguments()
-
     bot = load_bot(args)
 
     # The presence of a LadderServer argument indicates that this is a ladder game

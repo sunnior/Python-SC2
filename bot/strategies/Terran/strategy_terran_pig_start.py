@@ -35,7 +35,7 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
             position = await self.get_army_building_position(unit_type)
             is_lock_addon = True
         elif unit_type == UnitTypeId.COMMANDCENTER:
-            position = await self.bot.get_next_expansion()
+            position = self.get_next_expansion()
             is_lock_position = False
 
         if position and is_lock_position:
@@ -70,6 +70,29 @@ class BuildHelperTerranPigStart(InterfaceBuildHelper):
             return await main_city.get_placement_in_choke(unit_type, True)
         else:
             return await main_city.get_placement_in_base(unit_type, True)
+
+    def get_next_expansion(self):
+        main_city: City = self.bot.cities[0]
+        region = main_city.region
+        scan_regions = [ region_nbr[0] for region_nbr in region.regions_nbr ]
+        scaned_regions = [ region.region_id ]
+        next_scan_regions = []
+        expansion = None
+        while len(scan_regions):
+            scaned_regions = scaned_regions + scan_regions
+            for i_region_id in scan_regions:
+                i_region = self.bot.map_tool.regions[i_region_id]
+                if i_region.townhall_location:
+                    expansion = i_region.townhall_location
+                    return expansion
+                
+                for region_nbr in i_region.regions_nbr:
+                    if region_nbr[0] not in scaned_regions:
+                        next_scan_regions.append(region_nbr[0])
+                
+            next_scan_regions, scan_regions = scan_regions, next_scan_regions   
+            next_scan_regions.clear()        
+        return expansion
 
     def on_build_complete(self, unit: Unit, worker_tag: int):
         is_lock_position = True
