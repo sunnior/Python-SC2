@@ -103,11 +103,16 @@ void Builder::build_distance()
 			{
 				int x = point.first + offsets[i][0];
 				int y = point.second + offsets[i][1];
+				if (x < 0 || x >= size_x || y < 0 || y >= size_y)
+				{
+					continue;
+				}
 
 				npy_uint8* ptr_dis = (npy_uint8*)(distance_np->data + x * distance_np->strides[0] + y * distance_np->strides[1]);
 				if (*ptr_dis > distance)
 				{
 					*ptr_dis = distance;
+					int s1 = next_scan_points.size();
 					next_scan_points.push_back({ x, y });
 				}
 			}
@@ -206,15 +211,13 @@ void Builder::build_region()
 	}
 
 	std::sort(ridge_points.begin(), ridge_points.end(), [&](auto& p1, auto& p2) {
-		if (is_ramp(p1.first, p1.second))
+		bool is_ramp1 = is_ramp(p1.first, p1.second);
+		bool is_ramp2 = is_ramp(p2.first, p2.second);
+		if (is_ramp1 != is_ramp2)
 		{
-			return true;
+			return is_ramp1;
 		}
 
-		if (is_ramp(p2.first, p2.second))
-		{
-			return false;
-		}
 		npy_uint8* ptr_dis1 = (npy_uint8*)(distance_np->data + p1.first * distance_np->strides[0] + p1.second * distance_np->strides[1]);
 		npy_uint8* ptr_dis2 = (npy_uint8*)(distance_np->data + p2.first * distance_np->strides[0] + p2.second * distance_np->strides[1]);
 		return *ptr_dis1 < *ptr_dis2;
@@ -289,8 +292,8 @@ void Builder::build_region()
 		++region_idx;
 	}
 
-	//ºÏ²¢ÇøÓò
-	//¼ÆËãÇøÓòÖ®¼äµÄÏàÁÚ¹ØÏµ
+	//ï¿½Ï²ï¿½ï¿½ï¿½ï¿½ï¿½
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¹ï¿½Ïµ
 	std::map<int, std::vector<int>> connects;
 	for (int y = 0; y < size_y; ++y)
 	{
@@ -330,7 +333,7 @@ void Builder::build_region()
 		}
 	}
 
-	//ºÏ²¢ÇøÓò
+	//ï¿½Ï²ï¿½ï¿½ï¿½ï¿½ï¿½
 	std::map<int, int> single_connect_mapping;
 	while (true)
 	{
@@ -429,7 +432,7 @@ void Builder::build_region()
 
 
 static PyObject* cmap_tool_init(PyObject* self, PyObject* args)
-{
+{	
 	PyArrayObject* walkable_object;
 	PyArrayObject* heights_object;
 

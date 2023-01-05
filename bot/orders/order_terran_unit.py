@@ -1,5 +1,3 @@
-from distutils.command.build import build
-
 from typing import Callable, Optional
 from sc2.bot_ai import BotAI
 from bot.orders.order import Order

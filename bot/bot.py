@@ -1,4 +1,3 @@
-from code import interact
 from bot.bot_ai_base import BotAIBase
 from bot.strategies.Terran.strategy_terran_root import StrategyTerranRoot
 from bot.strategies.zerg import StrategyZergRoot

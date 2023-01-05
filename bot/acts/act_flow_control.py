@@ -1,5 +1,3 @@
-from distutils.log import debug
-from faulthandler import is_enabled
 from bot.acts.act_base import ActBase
 from sc2.bot_ai import BotAI
 

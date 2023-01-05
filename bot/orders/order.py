@@ -1,7 +1,6 @@
 """
 需要消耗资源的操作，比如生成单位，建造，升级单位资源，科技点，附属建筑，这些操作都需要考虑优先级，有竞争关系
 """
-from turtle import st
 from sc2.bot_ai import BotAI
 from sc2.unit import Unit
 

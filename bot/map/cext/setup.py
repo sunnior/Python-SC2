@@ -1,6 +1,9 @@
-from setuptools import setup, Extension
+from distutils.core import setup, Extension
 
-module1 = Extension('cmap_tool', sources = ['cmap_tool.cpp'])
+module1 = Extension('cmap_tool',
+                     include_dirs = ['../../../venv/Lib/site-packages/numpy/core/include'], 
+                     sources = ['cmap_tool.cpp']
+                     )
 
 setup (name = 'cmap_tool',
        version = '1.0',

@@ -79,8 +79,8 @@ def parse_arguments():
     parser.add_argument("--ComputerRace", type=str, default="Zerg",
                         help="Computer race. One of [Terran, Zerg, Protoss, Random]. Default is Terran. Only for local play.")
     parser.add_argument("--ComputerDifficulty", type=str, default="Hard",
-                        help=f"Computer difficulty. One of [VeryEasy, Easy, Medium, MediumHard, Hard, Harder, VeryHard, CheatVision, CheatMoney, CheatInsane]. Default is VeryEasy. Only for local play.")
-    parser.add_argument("--Map", type=str, default="MoondanceAIE",
+                        help=f"Computer difficulty. One of [VeryEasy, Easy, Medium, MediumHard, Hard, Harder, VeryHard, CheatVision,c CheatMoney, CheatInsane]. Default is VeryEasy. Only for local play.")
+    parser.add_argument("--Map", type=str, default="WaterfallAIE",
                         help="The name of the map to use. Default is Simple64. Only for local play.")
 
     # Both Ladder and Local play arguments

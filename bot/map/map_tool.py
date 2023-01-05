@@ -1,9 +1,8 @@
-from this import s
 from typing import Dict
 from sc2.bot_ai import BotAI
-from cmap_tool import init as cmap_tool_init
+from bot.map.cmap_tool import init as cmap_tool_init
 import numpy
-import matplotlib.pyplot as plt
+#import matploctlib.pyplot as plt
 from bot.map.region import Region
 from sc2.position import Point2
 
@@ -22,11 +21,12 @@ class MapTool():
 		grid_path = numpy.fmax(grid_path, grid_placement)
 		grid_path = grid_path[playable_area.x:(playable_area.width + playable_area.x), playable_area.y:(playable_area.height + playable_area.y)]
 
-		grid_height = numpy.load("test_height_np.npy").astype('uint8')
 		grid_height = grid_height[playable_area.x:(playable_area.width + playable_area.x), playable_area.y:(playable_area.height + playable_area.y)]
 
 		self.playable_area = playable_area
+
 		self.grid_region = cmap_tool_init(grid_path, grid_height)
+
 		for x in range(0, playable_area.width):
 			for y in range(0, playable_area.height):
 				region_id = self.grid_region[x][y]

@@ -52,7 +52,7 @@ class OrderBuildWorker(OrderBuild):
         else:
             #todo 如果position失败了，就不要lock city
             position = await self.build_helper.get_build_position(self.build_type)
-            if not position or not await self.bot.can_place(self.build_type, position):
+            if not position or not await self.bot.can_place_single(self.build_type, position):
                 return False
             worker = self.build_helper.get_worker(position)
             if not worker:

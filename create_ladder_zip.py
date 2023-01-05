@@ -32,7 +32,7 @@ files_and_directories_to_zip = [
 ladderbots_json_template = """{
     "Bots": {
         "[NAME]": {
-            "Race": "[RACE]",
+            "Race": "Terran",
             "Type": "Python",
             "RootPath": "./",
             "FileName": "run.py",
